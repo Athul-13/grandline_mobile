@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground } from 'react-native';
-import { LoginForm } from '../components/screens/LoginScreen/LoginForm';
-import { LoginCredentials } from '../types/auth';
-import { Colors } from '../constants/theme';
-import { useColorScheme } from '../hooks/use-color-scheme';
-import { PasswordChangeScreen } from './PasswordChangeScreen';
+import { useRouter } from 'expo-router';
+import { LoginForm } from '../../components/screens/LoginScreen/LoginForm';
+import { LoginCredentials } from '../../types/auth';
+import { Colors } from '../../constants/theme';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 
 export const LoginScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
-  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const router = useRouter();
   const colorScheme = useColorScheme();
 
   const handleLogin = async (credentials: LoginCredentials) => {
@@ -18,8 +18,8 @@ export const LoginScreen: React.FC = () => {
       // Simulate API call - accept any email/password
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Show success and navigate to password change
-      setShowPasswordChange(true);
+      // Navigate to password change screen
+      router.replace('/(auth)/password-change');
     } catch {
       Alert.alert(
         'Login Failed',
@@ -31,14 +31,9 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
-  // Show password change screen after successful login
-  if (showPasswordChange) {
-    return <PasswordChangeScreen />;
-  }
-
   return (
     <ImageBackground 
-      source={require('../assets/images/login-bg.png')} 
+      source={require('../../assets/images/login-bg.png')} 
       style={styles.backgroundImage}
       resizeMode="cover"
     >
@@ -56,7 +51,7 @@ export const LoginScreen: React.FC = () => {
           >
             <View style={styles.header}>
               <Image 
-                source={require('../assets/images/mainpage-logo.png')} 
+                source={require('../../assets/images/mainpage-logo.png')} 
                 style={styles.logo}
                 resizeMode="contain"
               />

@@ -1,24 +1,30 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
-import 'react-native-reanimated';
 
-export default function RootLayout() {
+export default function AuthLayout() {
   return (
     <View style={{ flex: 1, backgroundColor: '#F4F1DE' }}>
       <Stack>
         <Stack.Screen 
-          name="(auth)" 
+          name="login" 
           options={{ 
             headerShown: false,
-            title: 'Authentication'
+            title: 'Login'
           }} 
         />
         <Stack.Screen 
-          name="(main)" 
+          name="password-change" 
           options={{ 
             headerShown: false,
-            title: 'Main App'
+            title: 'Change Password'
+          }} 
+        />
+        <Stack.Screen 
+          name="onboarding" 
+          options={{ 
+            headerShown: false,
+            title: 'Driver Onboarding'
           }} 
         />
       </Stack>

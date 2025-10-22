@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground } from 'react-native';
-import { Input } from '../components/common/Input';
-import { Button } from '../components/common/Button';
-import { Colors } from '../constants/theme';
-import { useColorScheme } from '../hooks/use-color-scheme';
+import { useRouter } from 'expo-router';
+import { Input } from '../../components/common/Input';
+import { Button } from '../../components/common/Button';
+import { Colors } from '../../constants/theme';
+import { useColorScheme } from '../../hooks/use-color-scheme';
 
 export const PasswordChangeScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -13,6 +14,7 @@ export const PasswordChangeScreen: React.FC = () => {
     newPasswordError: null as string | null,
     confirmPasswordError: null as string | null,
   });
+  const router = useRouter();
   const colorScheme = useColorScheme();
 
   const validatePassword = (password: string): string | null => {
@@ -75,7 +77,10 @@ export const PasswordChangeScreen: React.FC = () => {
       Alert.alert(
         'Password Changed',
         'Your password has been updated successfully!',
-        [{ text: 'OK' }]
+        [{ 
+          text: 'OK',
+          onPress: () => router.push('/(auth)/onboarding')
+        }]
       );
     } catch {
       Alert.alert(
@@ -92,7 +97,10 @@ export const PasswordChangeScreen: React.FC = () => {
     Alert.alert(
       'Skipped',
       'Password change skipped. You can change it later in settings.',
-      [{ text: 'OK' }]
+      [{ 
+        text: 'OK',
+        onPress: () => router.push('/(auth)/onboarding')
+      }]
     );
   };
 
@@ -101,7 +109,7 @@ export const PasswordChangeScreen: React.FC = () => {
 
   return (
     <ImageBackground 
-      source={require('../assets/images/login-bg.png')} 
+      source={require('../../assets/images/login-bg.png')} 
       style={styles.backgroundImage}
       resizeMode="cover"
     >
@@ -119,7 +127,7 @@ export const PasswordChangeScreen: React.FC = () => {
           >
             <View style={styles.header}>
               <Image 
-                source={require('../assets/images/logo.png')} 
+                source={require('../../assets/images/logo.png')} 
                 style={styles.logo}
                 resizeMode="contain"
               />
@@ -203,6 +211,7 @@ const styles = StyleSheet.create({
     width: 130,
     height: 130,
     marginBottom: 20,
+    transform: [{ translateX: -5 }],
   },
   title: {
     fontSize: 20,
