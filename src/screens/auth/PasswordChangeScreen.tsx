@@ -1,21 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAppDispatch, useAppSelector, changePassword, clearError } from '../../store';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 
 export const PasswordChangeScreen: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  
+  // Get auth state from Redux
+  const { isLoading, error } = useAppSelector((state) => state.auth);
+  
   const [formData, setFormData] = useState({
     newPassword: '',
     confirmPassword: '',
     newPasswordError: null as string | null,
     confirmPasswordError: null as string | null,
   });
-  const router = useRouter();
-  const colorScheme = useColorScheme();
+
+  // Clear error when component mounts
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  // Show error alert when password change fails
+  useEffect(() => {
+    if (error) {
+      Alert.alert(
+        'Password Change Failed',
+        error,
+        [{ text: 'OK', onPress: () => dispatch(clearError()) }]
+      );
+    }
+  }, [error, dispatch]);
 
   const validatePassword = (password: string): string | null => {
     if (!password.trim()) {
@@ -68,11 +89,13 @@ export const PasswordChangeScreen: React.FC = () => {
       return;
     }
 
-    setLoading(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Dispatch password change action
+      await dispatch(changePassword({
+        currentPassword: '', // In real app, you'd get this from user input
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      })).unwrap();
       
       Alert.alert(
         'Password Changed',
@@ -82,14 +105,9 @@ export const PasswordChangeScreen: React.FC = () => {
           onPress: () => router.push('/(auth)/onboarding')
         }]
       );
-    } catch {
-      Alert.alert(
-        'Error',
-        'Failed to update password. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      // Error is handled by useEffect above
+      console.error('Password change error:', error);
     }
   };
 
@@ -160,7 +178,7 @@ export const PasswordChangeScreen: React.FC = () => {
                   title="Continue"
                   onPress={handleContinue}
                   disabled={!isFormValid}
-                  loading={loading}
+                  loading={isLoading}
                   style={styles.continueButton}
                 />
                 

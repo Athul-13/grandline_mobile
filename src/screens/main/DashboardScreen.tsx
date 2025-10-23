@@ -1,25 +1,56 @@
-import React from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, ImageBackground } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, Text, TouchableOpacity, Image, ImageBackground, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAppDispatch, useAppSelector, logoutUser, getCurrentUser } from '../../store';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 
 export const DashboardScreen: React.FC = () => {
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const colorScheme = useColorScheme();
+  
+  // Get user data from Redux state
+  const { user } = useAppSelector((state) => state.auth);
+
+  // Load user data when component mounts
+  useEffect(() => {
+    if (!user) {
+      dispatch(getCurrentUser());
+    }
+  }, [dispatch, user]);
 
   const handleLogout = () => {
-    // Navigate back to login
-    router.replace('/(auth)/login');
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Logout', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(logoutUser()).unwrap();
+              router.replace('/(auth)/login');
+            } catch {
+              // Even if logout fails, navigate to login
+              router.replace('/(auth)/login');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // Get user's first name for welcome message
+  const getWelcomeMessage = () => {
+    if (!user) return 'Welcome to GrandLine!';
+    return `Welcome back, ${user.firstName}!`;
   };
 
   return (
-    <ImageBackground 
-      source={require('../../assets/images/login-bg.png')} 
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay} />
+    <>
       <View style={styles.container}>
         <View style={styles.header}>
           <Image 
@@ -28,10 +59,10 @@ export const DashboardScreen: React.FC = () => {
             resizeMode="contain"
           />
           <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
-            Welcome to GrandLine!
+            {getWelcomeMessage()}
           </Text>
           <Text style={[styles.subtitle, { color: Colors[colorScheme ?? 'light'].text }]}>
-            You have successfully logged in.
+            {user ? `Ready to start driving, ${user.firstName}?` : 'Loading your dashboard...'}
           </Text>
         </View>
         
@@ -51,30 +82,17 @@ export const DashboardScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
-    </ImageBackground>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#F4F1DE',
-    opacity: 0.8,
-  },
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
+    backgroundColor: '#F4F1DE',
   },
   header: {
     alignItems: 'center',

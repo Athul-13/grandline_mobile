@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   StyleSheet, 
@@ -11,17 +11,38 @@ import {
   Platform 
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAppDispatch, useAppSelector, completeDriverOnboarding, clearError } from '../../store';
 import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 import { Button } from '../../components/common/Button';
 
 export const DriverOnboardingScreen: React.FC = () => {
-  const [loading, setLoading] = useState(false);
-  const [driverLicense, setDriverLicense] = useState<string | null>(null);
-  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const colorScheme = useColorScheme();
+  
+  // Get auth state from Redux
+  const { isLoading, error } = useAppSelector((state) => state.auth);
+  
+  const [driverLicense, setDriverLicense] = useState<string | null>(null);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+
+  // Clear error when component mounts
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  // Show error alert when onboarding fails
+  useEffect(() => {
+    if (error) {
+      Alert.alert(
+        'Onboarding Failed',
+        error,
+        [{ text: 'OK', onPress: () => dispatch(clearError()) }]
+      );
+    }
+  }, [error, dispatch]);
 
   const requestPermissions = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -41,7 +62,7 @@ export const DriverOnboardingScreen: React.FC = () => {
     if (!hasPermission) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [16, 10], // Driver's license aspect ratio
       quality: 0.8,
@@ -107,11 +128,12 @@ export const DriverOnboardingScreen: React.FC = () => {
       return;
     }
 
-    setLoading(true);
-    
     try {
-      // Simulate API call to upload images
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Dispatch onboarding completion action
+      await dispatch(completeDriverOnboarding({
+        driverLicense,
+        profilePicture,
+      })).unwrap();
       
       Alert.alert(
         'Onboarding Complete!',
@@ -121,14 +143,9 @@ export const DriverOnboardingScreen: React.FC = () => {
           onPress: () => router.replace('/(main)')
         }]
       );
-    } catch {
-      Alert.alert(
-        'Upload Failed',
-        'Failed to upload your information. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      // Error is handled by useEffect above
+      console.error('Onboarding error:', error);
     }
   };
 
@@ -233,7 +250,7 @@ export const DriverOnboardingScreen: React.FC = () => {
                  title="Complete Setup"
                  onPress={handleContinue}
                  disabled={!isComplete}
-                 loading={loading}
+                 loading={isLoading}
                  style={styles.continueButton}
                />
              </View>

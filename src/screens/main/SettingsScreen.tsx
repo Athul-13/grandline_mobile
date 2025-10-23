@@ -1,13 +1,11 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, ImageBackground, ScrollView, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useAppDispatch, useAppSelector, logoutUser, getCurrentUser } from '../../store';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 
-export const ProfileScreen: React.FC = () => {
+export const SettingsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
-  const router = useRouter();
   const colorScheme = useColorScheme();
   
   // Get user data from Redux state
@@ -31,10 +29,6 @@ export const ProfileScreen: React.FC = () => {
     }
   }, [error]);
 
-  const handleBack = () => {
-    router.back();
-  };
-
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -47,10 +41,8 @@ export const ProfileScreen: React.FC = () => {
           onPress: async () => {
             try {
               await dispatch(logoutUser()).unwrap();
-              router.replace('/(auth)/login');
-            } catch (error) {
-              // Even if logout fails, navigate to login
-              router.replace('/(auth)/login');
+            } catch {
+              // Even if logout fails, continue
             }
           }
         }
@@ -87,29 +79,19 @@ export const ProfileScreen: React.FC = () => {
   };
 
   return (
-    <ImageBackground 
-      source={require('../../assets/images/login-bg.png')} 
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay} />
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
-          
-          <Image 
-            source={require('../../assets/images/logo.png')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
-            User Profile
-          </Text>
-        </View>
-        
-        <View style={styles.content}>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Image 
+          source={require('../../assets/images/logo.png')} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
+          Settings
+        </Text>
+      </View>
+      
+      <View style={styles.content}>
           <View style={styles.profileCard}>
             {/* User Avatar */}
             {user?.avatar ? (
@@ -190,45 +172,20 @@ export const ProfileScreen: React.FC = () => {
             <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </ImageBackground>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#F4F1DE',
-    opacity: 0.8,
-  },
   container: {
     flex: 1,
+    backgroundColor: '#F4F1DE',
   },
   header: {
     alignItems: 'center',
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    left: 20,
-    top: 60,
-    padding: 10,
-  },
-  backButtonText: {
-    color: '#C5630C',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   logo: {
     width: 100,
@@ -243,7 +200,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 100, // Extra padding for bottom navigation
   },
   profileCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',

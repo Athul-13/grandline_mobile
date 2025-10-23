@@ -1,5 +1,5 @@
-import { DashboardScreen } from '../../src/screens/main/DashboardScreen';
+import { MainScreen } from '../../src/screens/main/MainScreen';
 
-export default function Dashboard() {
-  return <DashboardScreen />;
+export default function Main() {
+  return <MainScreen />;
 }

@@ -1,33 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAppDispatch, useAppSelector, loginUser, clearError } from '../../store';
 import { LoginForm } from '../../components/screens/LoginScreen/LoginForm';
 import { LoginCredentials } from '../../types/auth';
 import { Colors } from '../../constants/theme';
 import { useColorScheme } from '../../hooks/use-color-scheme';
 
 export const LoginScreen: React.FC = () => {
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
   const router = useRouter();
   const colorScheme = useColorScheme();
+  
+  // Get auth state from Redux
+  const { isLoading, error, isAuthenticated, user } = useAppSelector((state) => state.auth);
 
-  const handleLogin = async (credentials: LoginCredentials) => {
-    setLoading(true);
-    
-    try {
-      // Simulate API call - accept any email/password
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Navigate to password change screen
-      router.replace('/(auth)/password-change');
-    } catch {
+  // Clear error when component mounts
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  // Navigate based on onboarding status when login is successful
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.isOnboardingComplete) {
+        // User has completed onboarding, go to main app
+        router.replace('/(main)');
+      } else {
+        // User hasn't completed onboarding, go to password change first
+        router.replace('/(auth)/password-change');
+      }
+    }
+  }, [isAuthenticated, user, router]);
+
+  // Show error alert when login fails
+  useEffect(() => {
+    if (error) {
       Alert.alert(
         'Login Failed',
-        'Please check your credentials and try again.',
-        [{ text: 'OK' }]
+        error,
+        [{ text: 'OK', onPress: () => dispatch(clearError()) }]
       );
-    } finally {
-      setLoading(false);
+    }
+  }, [error, dispatch]);
+
+  const handleLogin = async (credentials: LoginCredentials) => {
+    try {
+      // Dispatch login action
+      await dispatch(loginUser(credentials)).unwrap();
+    } catch (error) {
+      // Error is handled by useEffect above
+      console.error('Login error:', error);
     }
   };
 
@@ -60,7 +83,7 @@ export const LoginScreen: React.FC = () => {
               </Text>
             </View>
             
-            <LoginForm onSubmit={handleLogin} loading={loading} />
+            <LoginForm onSubmit={handleLogin} loading={isLoading} />
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>

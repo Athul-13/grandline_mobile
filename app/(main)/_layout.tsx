@@ -6,19 +6,12 @@ export default function MainLayout() {
   return (
     <View style={{ flex: 1, backgroundColor: '#F4F1DE' }}>
       <Stack>
-        <Stack.Screen 
-          name="index" 
-          options={{ 
+        <Stack.Screen
+          name="index"
+          options={{
             headerShown: false,
-            title: 'Dashboard'
-          }} 
-        />
-        <Stack.Screen 
-          name="profile" 
-          options={{ 
-            headerShown: false,
-            title: 'Profile'
-          }} 
+            title: 'Main App'
+          }}
         />
       </Stack>
       <StatusBar style="dark" backgroundColor="#F4F1DE" />
