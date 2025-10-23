@@ -8,7 +8,13 @@ import { useTheme } from '../../hooks/use-theme';
 import { spacing, borderRadius, typography } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-export const PasswordChangeScreen: React.FC = () => {
+interface PasswordChangeScreenProps {
+  isOnboardingFlow?: boolean;
+}
+
+export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({ 
+  isOnboardingFlow = false 
+}) => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { theme } = useTheme();
@@ -103,7 +109,13 @@ export const PasswordChangeScreen: React.FC = () => {
         'Your password has been updated successfully!',
         [{ 
           text: 'OK',
-          onPress: () => router.push('/(auth)/onboarding')
+          onPress: () => {
+            if (isOnboardingFlow) {
+              router.replace('/(auth)/onboarding');
+            } else {
+              router.back();
+            }
+          }
         }]
       );
     } catch (error) {
@@ -114,6 +126,17 @@ export const PasswordChangeScreen: React.FC = () => {
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handleSkip = () => {
+    Alert.alert(
+      'Skipped',
+      'Password change skipped. You can change it later in settings.',
+      [{ 
+        text: 'OK',
+        onPress: () => router.replace('/(auth)/onboarding')
+      }]
+    );
   };
 
   const isFormValid = !formData.newPasswordError && !formData.confirmPasswordError && 
@@ -140,19 +163,22 @@ export const PasswordChangeScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.header}>
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={handleBack}
-              >
-                <Ionicons name="arrow-back" size={24} color={theme.primary} />
-              </TouchableOpacity>
+              {/* Conditional Back button for profile context */}
+              {!isOnboardingFlow && (
+                <TouchableOpacity 
+                  style={styles.backButton}
+                  onPress={handleBack}
+                >
+                  <Ionicons name="arrow-back" size={24} color={theme.primary} />
+                </TouchableOpacity>
+              )}
               <Image 
                 source={require('../../assets/images/logo.png')} 
                 style={styles.logo}
                 resizeMode="contain"
               />
               <Text style={[styles.title, { color: theme.text }]}>
-                Change Password
+                {isOnboardingFlow ? 'Wish to change password?' : 'Change Password'}
               </Text>
               <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
                 Create a strong password to secure your account
@@ -210,6 +236,16 @@ export const PasswordChangeScreen: React.FC = () => {
                   loading={isLoading}
                   style={[styles.continueButton, { backgroundColor: theme.primary }]}
                 />
+                
+                {/* Conditional Skip button for onboarding flow */}
+                {isOnboardingFlow && (
+                  <Button
+                    title="Skip for Now"
+                    onPress={handleSkip}
+                    variant="secondary"
+                    style={[styles.skipButton, { borderColor: theme.primary }]}
+                  />
+                )}
               </View>
             </View>
           </ScrollView>
@@ -296,6 +332,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm + 4,
   },
   continueButton: {
+    borderRadius: borderRadius.md,
+  },
+  skipButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
     borderRadius: borderRadius.md,
   },
 });

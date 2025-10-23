@@ -82,7 +82,7 @@ function CustomTabBar() {
   ];
 
   const handleTabPress = (route: string) => {
-    router.push(route as any);
+    router.replace(route as any);
   };
 
   const isActive = (tabKey: string) => {

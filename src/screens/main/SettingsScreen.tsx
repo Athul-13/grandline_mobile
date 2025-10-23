@@ -44,8 +44,10 @@ export const SettingsScreen: React.FC = () => {
           onPress: async () => {
             try {
               await dispatch(logoutUser()).unwrap();
+              router.replace('/(auth)/login');
             } catch {
-              // Even if logout fails, continue
+              // Even if logout fails, navigate to login
+              router.replace('/(auth)/login');
             }
           }
         }

@@ -11,7 +11,7 @@ const mockUser: User = {
   avatar: undefined,
   phoneNumber: '+1234567890',
   isEmailVerified: true,
-  isOnboardingComplete: true, // Change this to true/false for testing
+  isOnboardingComplete: false, // Change this to true/false for testing
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-01T00:00:00Z',
 };

@@ -225,7 +225,7 @@ export const ProfileScreen: React.FC = () => {
 
             <TouchableOpacity 
               style={styles.actionRow}
-              onPress={() => router.push('/(auth)/password-change')}
+              onPress={() => router.push('/(main)/(settings)/change-password')}
             >
               <View style={styles.actionLeft}>
                 <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>

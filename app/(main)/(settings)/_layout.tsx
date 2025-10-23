@@ -31,6 +31,13 @@ export default function SettingsLayout() {
           title: 'Report Issue'
         }}
       />
+      <Stack.Screen
+        name="change-password"
+        options={{
+          headerShown: false,
+          title: 'Change Password'
+        }}
+      />
     </Stack>
   );
 }

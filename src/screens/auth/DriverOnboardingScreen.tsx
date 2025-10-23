@@ -13,14 +13,14 @@ import {
 import { useRouter } from 'expo-router';
 import { useAppDispatch, useAppSelector, completeDriverOnboarding, clearError } from '../../store';
 import * as ImagePicker from 'expo-image-picker';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import { useTheme } from '../../hooks/use-theme';
+import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 
 export const DriverOnboardingScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const { theme } = useTheme();
   
   // Get auth state from Redux
   const { isLoading, error } = useAppSelector((state) => state.auth);
@@ -153,7 +153,7 @@ export const DriverOnboardingScreen: React.FC = () => {
   const isComplete = driverLicense && profilePicture;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView 
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -168,10 +168,10 @@ export const DriverOnboardingScreen: React.FC = () => {
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
+            <Text style={[styles.title, { color: theme.text }]}>
               Complete Your Profile
             </Text>
-             <Text style={[styles.subtitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+             <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
                Please upload your driver&apos;s license and profile picture to get started.
              </Text>
           </View>
@@ -179,7 +179,7 @@ export const DriverOnboardingScreen: React.FC = () => {
           <View style={styles.content}>
             {/* Driver's License Section */}
             <View style={styles.section}>
-               <Text style={[styles.sectionTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+               <Text style={[styles.sectionTitle, { color: theme.text }]}>
                  Driver&apos;s License
                </Text>
               
@@ -194,18 +194,18 @@ export const DriverOnboardingScreen: React.FC = () => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.uploadContainer}>
+                <View style={[styles.uploadContainer, { borderColor: theme.primary, backgroundColor: `${theme.primary}0D` }]}>
                   <View style={styles.uploadIcon}>
                     <Text style={styles.uploadIconText}>📄</Text>
                   </View>
-                   <Text style={[styles.uploadText, { color: Colors[colorScheme ?? 'light'].text }]}>
+                   <Text style={[styles.uploadText, { color: theme.text }]}>
                      Upload your driver&apos;s license
                    </Text>
                   <View style={styles.buttonRow}>
-                    <TouchableOpacity style={styles.uploadButton} onPress={pickDriverLicense}>
+                    <TouchableOpacity style={[styles.uploadButton, { backgroundColor: theme.primary }]} onPress={pickDriverLicense}>
                       <Text style={styles.uploadButtonText}>Choose from Gallery</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.uploadButton} onPress={takeDriverLicense}>
+                    <TouchableOpacity style={[styles.uploadButton, { backgroundColor: theme.primary }]} onPress={takeDriverLicense}>
                       <Text style={styles.uploadButtonText}>Take Photo</Text>
                     </TouchableOpacity>
                   </View>
@@ -215,7 +215,7 @@ export const DriverOnboardingScreen: React.FC = () => {
 
             {/* Profile Picture Section */}
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: Colors[colorScheme ?? 'light'].text }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
                 Profile Picture
               </Text>
               
@@ -230,14 +230,14 @@ export const DriverOnboardingScreen: React.FC = () => {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.uploadContainer}>
+                <View style={[styles.uploadContainer, { borderColor: theme.primary, backgroundColor: `${theme.primary}0D` }]}>
                   <View style={styles.uploadIcon}>
                     <Text style={styles.uploadIconText}>📷</Text>
                   </View>
-                   <Text style={[styles.uploadText, { color: Colors[colorScheme ?? 'light'].text }]}>
+                   <Text style={[styles.uploadText, { color: theme.text }]}>
                      Take your profile picture
                    </Text>
-                   <TouchableOpacity style={styles.singleUploadButton} onPress={takeProfilePicture}>
+                   <TouchableOpacity style={[styles.singleUploadButton, { backgroundColor: theme.primary }]} onPress={takeProfilePicture}>
                      <Text style={styles.uploadButtonText}>Take Photo</Text>
                    </TouchableOpacity>
                 </View>
@@ -264,48 +264,47 @@ export const DriverOnboardingScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F1DE',
   },
   keyboardView: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingVertical: 20,
+    paddingVertical: spacing.md + 4,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 10,
-    paddingHorizontal: 20,
+    marginBottom: spacing.md + 4,
+    marginTop: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
   },
   logo: {
     width: 120,
     height: 120,
-    marginBottom: 20,
+    marginBottom: spacing.md + 4,
     transform: [{ translateX: -5 }],
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: typography.sizes.md,
     textAlign: 'center',
     opacity: 0.8,
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.md,
   },
   section: {
-    marginBottom: 30,
+    marginBottom: spacing.lg + 6,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing.md - 1,
   },
   imageContainer: {
     alignItems: 'center',
@@ -313,73 +312,68 @@ const styles = StyleSheet.create({
   licenseImage: {
     width: 200,
     height: 125,
-    borderRadius: 8,
-    marginBottom: 10,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.sm + 2,
   },
   profileImage: {
     width: 150,
     height: 150,
-    borderRadius: 75,
-    marginBottom: 10,
+    borderRadius: borderRadius.full,
+    marginBottom: spacing.sm + 2,
   },
   changeButton: {
-    backgroundColor: '#C5630C',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: spacing.md + 4,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
   },
   changeButtonText: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
   },
   uploadContainer: {
     alignItems: 'center',
-    padding: 20,
+    padding: spacing.md + 4,
     borderWidth: 2,
-    borderColor: '#C5630C',
     borderStyle: 'dashed',
-    borderRadius: 12,
-    backgroundColor: 'rgba(197, 99, 12, 0.05)',
+    borderRadius: borderRadius.md,
   },
   uploadIcon: {
-    marginBottom: 10,
+    marginBottom: spacing.sm + 2,
   },
   uploadIconText: {
     fontSize: 40,
   },
   uploadText: {
-    fontSize: 16,
+    fontSize: typography.sizes.md,
     textAlign: 'center',
-    marginBottom: 15,
+    marginBottom: spacing.md - 1,
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing.sm + 2,
   },
   uploadButton: {
-    backgroundColor: '#C5630C',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 6,
+    paddingHorizontal: spacing.md - 1,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: borderRadius.sm,
   },
   singleUploadButton: {
-    backgroundColor: '#C5630C',
-    paddingHorizontal: 30,
-    paddingVertical: 12,
-    borderRadius: 6,
+    paddingHorizontal: spacing.lg + 6,
+    paddingVertical: spacing.sm + 4,
+    borderRadius: borderRadius.sm,
     alignSelf: 'center',
   },
   uploadButtonText: {
     color: 'white',
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
   },
   actionButtons: {
-    marginTop: 20,
-    gap: 12,
+    marginTop: spacing.md + 4,
+    gap: spacing.sm + 4,
   },
   continueButton: {
-    backgroundColor: '#C5630C',
+    borderRadius: borderRadius.md,
   },
 });
