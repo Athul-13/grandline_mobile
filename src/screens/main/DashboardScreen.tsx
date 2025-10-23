@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, ImageBackground, Alert } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppDispatch, useAppSelector, logoutUser, getCurrentUser } from '../../store';
 import { Colors } from '../../constants/theme';
@@ -68,13 +68,6 @@ export const DashboardScreen: React.FC = () => {
         
         <View style={styles.content}>
           <TouchableOpacity 
-            style={styles.button}
-            onPress={() => router.push('/(main)/profile')}
-          >
-            <Text style={styles.buttonText}>View Profile</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
             style={[styles.button, styles.logoutButton]}
             onPress={handleLogout}
           >
@@ -92,6 +85,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingBottom: 100, // Space for floating tab bar
     backgroundColor: '#F4F1DE',
   },
   header: {

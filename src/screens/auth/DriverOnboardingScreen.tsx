@@ -140,7 +140,7 @@ export const DriverOnboardingScreen: React.FC = () => {
         'Your driver information has been submitted successfully. Welcome to GrandLine!',
         [{ 
           text: 'Continue',
-          onPress: () => router.replace('/(main)')
+          onPress: () => router.replace('/(main)/(dashboard)')
         }]
       );
     } catch (error) {
