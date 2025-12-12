@@ -1,8 +1,9 @@
 import { API_ENDPOINTS } from '../../constants/api';
 import type {
-    AuthResponse,
-    LoginCredentials,
+  AuthResponse,
+  LoginCredentials,
 } from '../../types/auth/auth';
+import { unwrapAxiosResponse } from '../../utils/response_unwrapper';
 import { grandlineAxiosClient } from './axios_client';
 
 /**
@@ -10,11 +11,11 @@ import { grandlineAxiosClient } from './axios_client';
  */
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await grandlineAxiosClient.post<AuthResponse>(
+    const response = await grandlineAxiosClient.post(
       API_ENDPOINTS.AUTH.LOGIN,
       credentials
     );
-    return response.data;
+    return unwrapAxiosResponse<AuthResponse>(response);
   },
 
   logout: async (): Promise<void> => {
@@ -22,10 +23,10 @@ export const authService = {
   },
 
   refreshToken: async (): Promise<AuthResponse> => {
-    const response = await grandlineAxiosClient.post<AuthResponse>(
+    const response = await grandlineAxiosClient.post(
       API_ENDPOINTS.AUTH.REFRESH_TOKEN
     );
-    return response.data;
+    return unwrapAxiosResponse<AuthResponse>(response);
   },
 
   forgotPassword: async (email: string): Promise<void> => {

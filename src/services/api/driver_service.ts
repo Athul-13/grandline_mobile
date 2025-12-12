@@ -1,25 +1,76 @@
 import { API_ENDPOINTS } from '../../constants/api';
 import type { DriverOnboardingData } from '../../types/auth/auth';
 import { grandlineAxiosClient } from './axios_client';
+import { unwrapAxiosResponse } from '../../utils/response_unwrapper';
+import { uploadFileToCloudinary } from '../../utils/cloudinary_uploader';
+import { userService } from './user_service';
+
+/**
+ * Signed upload URL response from server
+ */
+interface SignedUploadUrlResponse {
+  uploadUrl: string;
+  params: {
+    timestamp: number;
+    signature: string;
+    api_key: string;
+    folder: string;
+  };
+  expiresIn: number;
+}
 
 /**
  * Driver Service
  */
 export const driverService = {
   updateLicenseCard: async (licenseUrl: string): Promise<{ licenseUrl: string }> => {
-    const response = await grandlineAxiosClient.put<{ licenseUrl: string }>(
+    const response = await grandlineAxiosClient.put(
       API_ENDPOINTS.DRIVER.UPDATE_LICENSE_CARD,
-      { licenseUrl }
+      { licenseCardPhotoUrl: licenseUrl }
     );
-    return response.data;
+    const unwrapped = unwrapAxiosResponse<{ driver: { licenseCardPhotoUrl: string } }>(response);
+    return { licenseUrl: unwrapped.driver.licenseCardPhotoUrl };
   },
 
   updateProfilePicture: async (pictureUrl: string): Promise<{ pictureUrl: string }> => {
-    const response = await grandlineAxiosClient.put<{ pictureUrl: string }>(
+    const response = await grandlineAxiosClient.put(
       API_ENDPOINTS.DRIVER.UPDATE_PROFILE_PICTURE,
-      { pictureUrl }
+      { profilePictureUrl: pictureUrl }
     );
-    return response.data;
+    const unwrapped = unwrapAxiosResponse<{ driver: { profilePictureUrl: string } }>(response);
+    return { pictureUrl: unwrapped.driver.profilePictureUrl };
+  },
+
+  uploadLicenseCard: async (fileUri: string): Promise<{ licenseUrl: string }> => {
+    // Step 1: Get signed upload URL (reuse user endpoint for now, or create driver-specific endpoint)
+    // TODO: Server should add /driver/license/upload-url endpoint
+    const uploadUrlData = await userService.getProfilePictureUploadUrl();
+
+    // Step 2: Upload file to Cloudinary
+    const uploadedUrl = await uploadFileToCloudinary(
+      fileUri,
+      uploadUrlData.uploadUrl,
+      uploadUrlData.params
+    );
+
+    // Step 3: Update driver license card with uploaded URL
+    return await driverService.updateLicenseCard(uploadedUrl);
+  },
+
+  uploadProfilePicture: async (fileUri: string): Promise<{ pictureUrl: string }> => {
+    // Step 1: Get signed upload URL (reuse user endpoint for now, or create driver-specific endpoint)
+    // TODO: Server should add /driver/profile-picture/upload-url endpoint
+    const uploadUrlData = await userService.getProfilePictureUploadUrl();
+
+    // Step 2: Upload file to Cloudinary
+    const uploadedUrl = await uploadFileToCloudinary(
+      fileUri,
+      uploadUrlData.uploadUrl,
+      uploadUrlData.params
+    );
+
+    // Step 3: Update driver profile picture with uploaded URL
+    return await driverService.updateProfilePicture(uploadedUrl);
   },
 
   updateOnboardingPassword: async (passwordData: {
@@ -34,26 +85,25 @@ export const driverService = {
   completeOnboarding: async (
     onboardingData: DriverOnboardingData
   ): Promise<{ isOnboardingComplete: boolean }> => {
-    const response = await grandlineAxiosClient.post<{ isOnboardingComplete: boolean }>(
+    const response = await grandlineAxiosClient.post(
       API_ENDPOINTS.DRIVER.COMPLETE_ONBOARDING,
       onboardingData
     );
-    return response.data;
+    return unwrapAxiosResponse<{ isOnboardingComplete: boolean }>(response);
   },
 
   getDriverProfile: async (): Promise<any> => {
     const response = await grandlineAxiosClient.get(
       API_ENDPOINTS.DRIVER.GET_DRIVER_PROFILE
     );
-    return response.data;
+    return unwrapAxiosResponse(response);
   },
 
   getDriverInfo: async (): Promise<{ hasLicense: boolean; hasProfilePicture: boolean }> => {
-    const response = await grandlineAxiosClient.get<{
-      hasLicense: boolean;
-      hasProfilePicture: boolean;
-    }>(API_ENDPOINTS.DRIVER.GET_DRIVER_INFO);
-    return response.data;
+    const response = await grandlineAxiosClient.get(
+      API_ENDPOINTS.DRIVER.GET_DRIVER_INFO
+    );
+    return unwrapAxiosResponse<{ hasLicense: boolean; hasProfilePicture: boolean }>(response);
   },
 };
 

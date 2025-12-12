@@ -47,7 +47,7 @@ export interface PasswordChangeData {
 
 // Driver onboarding data
 export interface DriverOnboardingData {
-  readonly driverLicense: string; // Base64 or file URI
-  readonly profilePicture: string; // Base64 or file URI
+  readonly driverLicense: string; // Cloudinary URL
+  readonly profilePicture: string; // Cloudinary URL
 }
 
