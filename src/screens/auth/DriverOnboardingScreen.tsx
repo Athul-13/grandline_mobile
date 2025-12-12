@@ -11,10 +11,12 @@ import {
   Platform 
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, completeDriverOnboarding, clearError } from '../../store';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { clearError } from '../../store/slices/auth_slice';
+import { useDriverOnboarding } from '../../hooks/driver';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../hooks/use-theme';
-import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
+import { spacing, borderRadius, typography } from '../../constants/theme';
 import { Button } from '../../components/common/Button';
 
 export const DriverOnboardingScreen: React.FC = () => {
@@ -23,7 +25,8 @@ export const DriverOnboardingScreen: React.FC = () => {
   const { theme } = useTheme();
   
   // Get auth state from Redux
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { error } = useAppSelector((state) => state.auth);
+  const onboardingMutation = useDriverOnboarding();
   
   const [driverLicense, setDriverLicense] = useState<string | null>(null);
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
@@ -129,11 +132,11 @@ export const DriverOnboardingScreen: React.FC = () => {
     }
 
     try {
-      // Dispatch onboarding completion action
-      await dispatch(completeDriverOnboarding({
-        driverLicense,
-        profilePicture,
-      })).unwrap();
+      // Call onboarding mutation
+      await onboardingMutation.mutateAsync({
+        driverLicense: driverLicense!,
+        profilePicture: profilePicture!,
+      });
       
       Alert.alert(
         'Onboarding Complete!',
@@ -250,7 +253,7 @@ export const DriverOnboardingScreen: React.FC = () => {
                  title="Complete Setup"
                  onPress={handleContinue}
                  disabled={!isComplete}
-                 loading={isLoading}
+                 loading={onboardingMutation.isPending}
                  style={styles.continueButton}
                />
              </View>

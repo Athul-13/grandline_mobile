@@ -1,19 +1,23 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, loginUser, clearError } from '../../store';
-import { LoginForm } from '../../components/screens/LoginScreen/LoginForm';
-import { LoginCredentials } from '../../types/auth';
+import React, { useEffect } from 'react';
+import { Alert, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { LoginForm } from '../../components/auth/login_form';
 import { Colors } from '../../constants/theme';
+import { useLogin } from '../../hooks/auth';
 import { useColorScheme } from '../../hooks/use-color-scheme';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { clearError } from '../../store/slices/auth_slice';
+import type { LoginCredentials } from '../../types/auth';
 
 export const LoginScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const loginMutation = useLogin();
   
   // Get auth state from Redux
-  const { isLoading, error, isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { error, isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const isLoginLoading = loginMutation.isPending;
 
   // Clear error when component mounts
   useEffect(() => {
@@ -25,7 +29,7 @@ export const LoginScreen: React.FC = () => {
     if (isAuthenticated && user) {
       if (user.isOnboardingComplete) {
         // User has completed onboarding, go to main app
-        router.replace('/(main)');
+        router.replace('/(main)/(dashboard)');
       } else {
         // User hasn't completed onboarding, go to password change first
         router.replace('/(auth)/password-change');
@@ -46,8 +50,7 @@ export const LoginScreen: React.FC = () => {
 
   const handleLogin = async (credentials: LoginCredentials) => {
     try {
-      // Dispatch login action
-      await dispatch(loginUser(credentials)).unwrap();
+      await loginMutation.mutateAsync(credentials);
     } catch (error) {
       // Error is handled by useEffect above
       console.error('Login error:', error);
@@ -83,7 +86,7 @@ export const LoginScreen: React.FC = () => {
               </Text>
             </View>
             
-            <LoginForm onSubmit={handleLogin} loading={isLoading} />
+            <LoginForm onSubmit={handleLogin} loading={isLoginLoading} />
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>

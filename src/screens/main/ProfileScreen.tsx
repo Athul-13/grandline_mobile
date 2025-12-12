@@ -1,25 +1,18 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, getCurrentUser } from '../../store';
+import { useAppSelector } from '../../store/hooks';
+import { useProfileQuery } from '../../hooks/profile';
 import { useTheme } from '../../hooks/use-theme';
 import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 export const ProfileScreen: React.FC = () => {
-  const dispatch = useAppDispatch();
   const router = useRouter();
   const { theme } = useTheme();
   
-  // Get user data from Redux state
-  const { user, isLoading, error } = useAppSelector((state) => state.auth);
-
-  // Load user data when component mounts
-  useEffect(() => {
-    if (!user) {
-      dispatch(getCurrentUser());
-    }
-  }, [dispatch, user]);
+  // Get user data from React Query
+  const { data: user, isLoading, error } = useProfileQuery();
 
   // Show error alert if user data fails to load
   useEffect(() => {

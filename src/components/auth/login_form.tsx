@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { Input } from '../../common/Input';
-import { Button } from '../../common/Button';
-import { validateEmail, validatePassword, trimCredentials } from '../../../utils/validation';
-import { LoginFormProps, LoginFormData } from '../../../types/auth';
+import { StyleSheet, View } from 'react-native';
+import type { LoginFormData, LoginFormProps } from '../../types/auth';
+import { trimCredentials, validateEmail, validatePassword } from '../../utils/validation';
+import { Button } from '../common/Button';
+import { Input } from '../common/Input';
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, loading = false }) => {
   const [formData, setFormData] = useState<LoginFormData>({
@@ -86,3 +86,4 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 });
+

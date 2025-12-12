@@ -1,6 +1,6 @@
 // API Configuration Constants
 export const API_CONFIG = {
-  BASE_URL: 'https://api.grandline.com', // Replace with your actual API base URL
+  BASE_URL: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.grandline.com',
   TIMEOUT: 10000, // 10 seconds
   RETRY_ATTEMPTS: 3,
 };
@@ -11,26 +11,26 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
-    REFRESH_TOKEN: '/auth/refresh',
-    CHANGE_PASSWORD: '/auth/change-password',
+    REFRESH_TOKEN: '/auth/token/refresh',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
-    VERIFY_EMAIL: '/auth/verify-email',
   },
   
   // User Management
   USER: {
     PROFILE: '/user/profile',
     UPDATE_PROFILE: '/user/profile',
-    UPLOAD_AVATAR: '/user/avatar',
-    DELETE_ACCOUNT: '/user/delete',
+    PROFILE_PICTURE_UPLOAD_URL: '/user/profile/upload-url',
+    CHANGE_PASSWORD: '/user/change-password',
   },
   
   // Driver Onboarding
   DRIVER: {
-    UPLOAD_LICENSE: '/driver/license',
-    UPLOAD_PROFILE_PICTURE: '/driver/profile-picture',
+    UPDATE_LICENSE_CARD: '/driver/license-card',
+    UPDATE_PROFILE_PICTURE: '/driver/profile-picture',
+    ONBOARDING_PASSWORD: '/driver/onboarding/password',
     COMPLETE_ONBOARDING: '/driver/onboarding',
+    GET_DRIVER_PROFILE: '/driver/profile',
     GET_DRIVER_INFO: '/driver/info',
   },
   

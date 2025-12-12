@@ -1,25 +1,20 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, logoutUser, getCurrentUser } from '../../store';
+import { useAppSelector } from '../../store/hooks';
+import { useLogout } from '../../hooks/auth';
+import { useProfileQuery } from '../../hooks/profile';
 import { useTheme } from '../../hooks/use-theme';
 import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 export const SettingsScreen: React.FC = () => {
-  const dispatch = useAppDispatch();
   const router = useRouter();
   const { theme } = useTheme();
+  const logoutMutation = useLogout();
   
-  // Get user data from Redux state
-  const { user, error } = useAppSelector((state) => state.auth);
-
-  // Load user data when component mounts
-  useEffect(() => {
-    if (!user) {
-      dispatch(getCurrentUser());
-    }
-  }, [dispatch, user]);
+  // Get user data from React Query
+  const { data: user, error } = useProfileQuery();
 
   // Show error alert if user data fails to load
   useEffect(() => {
@@ -43,7 +38,7 @@ export const SettingsScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await dispatch(logoutUser()).unwrap();
+              await logoutMutation.mutateAsync();
               router.replace('/(auth)/login');
             } catch {
               // Even if logout fails, navigate to login

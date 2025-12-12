@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, changePassword, clearError } from '../../store';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { clearError } from '../../store/slices/auth_slice';
+import { useChangePassword } from '../../hooks/auth';
 import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { useTheme } from '../../hooks/use-theme';
@@ -20,7 +22,8 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
   const { theme } = useTheme();
   
   // Get auth state from Redux
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { error } = useAppSelector((state) => state.auth);
+  const changePasswordMutation = useChangePassword();
   
   const [formData, setFormData] = useState({
     newPassword: '',
@@ -97,12 +100,11 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
     }
 
     try {
-      // Dispatch password change action
-      await dispatch(changePassword({
+      // Call password change mutation
+      await changePasswordMutation.mutateAsync({
         currentPassword: '', // In real app, you'd get this from user input
         newPassword: formData.newPassword,
-        confirmPassword: formData.confirmPassword,
-      })).unwrap();
+      });
       
       Alert.alert(
         'Password Changed',
@@ -233,7 +235,7 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
                   title="Change Password"
                   onPress={handleContinue}
                   disabled={!isFormValid}
-                  loading={isLoading}
+                  loading={changePasswordMutation.isPending}
                   style={[styles.continueButton, { backgroundColor: theme.primary }]}
                 />
                 

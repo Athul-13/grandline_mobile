@@ -1,10 +1,10 @@
+// Auth components
+export * from './auth';
+
+// Common components
 export * from './common';
-export * from './screens/LoginScreen';
-export * from './themed-text';
-export * from './themed-view';
-export * from './parallax-scroll-view';
-export * from './hello-wave';
-export * from './haptic-tab';
-export * from './external-link';
-export * from './ui/collapsible';
-export * from './ui/icon-symbol';
+
+// UI components
+export { default as Collapsible } from './ui/collapsible';
+export { default as ThemedText } from './themed-text';
+export { default as ThemedView } from './themed-view';
