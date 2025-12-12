@@ -1,16 +1,15 @@
-import type { User } from './user';
+import type { Driver } from '../driver';
 
-// Authentication response
+// Authentication response (matches server LoginDriverResponse)
 export interface AuthResponse {
-  readonly user: User;
+  readonly driver: Driver;
   readonly accessToken: string;
   readonly refreshToken: string;
-  readonly expiresIn: number;
 }
 
 // Authentication state
 export interface AuthState {
-  readonly user: User | null;
+  readonly driver: Driver | null;
   readonly accessToken: string | null;
   readonly refreshToken: string | null;
   readonly isAuthenticated: boolean;

@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAppDispatch } from '../../store/hooks';
 import { authService } from '../../services/api/auth_service';
+import { useAppDispatch } from '../../store/hooks';
 import { setAuthState } from '../../store/slices/auth_slice';
-import type { LoginCredentials, AuthResponse } from '../../types/auth';
+import type { AuthResponse, LoginCredentials } from '../../types/auth';
 
 /**
- * Hook for user login
+ * Hook for driver login
  * Uses React Query mutation and updates Redux auth state
  */
 export const useLogin = () => {
@@ -20,14 +20,14 @@ export const useLogin = () => {
       // Update Redux auth state
       dispatch(
         setAuthState({
-          user: data.user,
+          driver: data.driver,
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
         })
       );
 
-      // Invalidate and refetch user-related queries
-      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      // Invalidate and refetch driver-related queries
+      queryClient.invalidateQueries({ queryKey: ['driver', 'profile'] });
     },
     onError: (error: Error) => {
       console.error('Login failed:', error);

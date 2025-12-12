@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppSelector } from '../../store/hooks';
-import { useProfileQuery } from '../../hooks/profile';
+import { useDriverProfileQuery } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
 import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,10 +11,10 @@ export const ProfileScreen: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   
-  // Get user data from React Query
-  const { data: user, isLoading, error } = useProfileQuery();
+  // Get driver data from React Query
+  const { data: driver, isLoading, error } = useDriverProfileQuery();
 
-  // Show error alert if user data fails to load
+  // Show error alert if driver data fails to load
   useEffect(() => {
     if (error) {
       Alert.alert(
@@ -35,21 +35,21 @@ export const ProfileScreen: React.FC = () => {
     });
   };
 
-  // Get user's full name
+  // Get driver's full name
   const getFullName = () => {
-    if (!user) return 'Loading...';
-    return `${user.firstName} ${user.lastName}`;
+    if (!driver) return 'Loading...';
+    return driver.fullName;
   };
 
-  // Get status text
+  // Get status text based on driver status
   const getStatus = () => {
-    if (!user) return 'Loading...';
-    if (user.isEmailVerified && user.isOnboardingComplete) {
+    if (!driver) return 'Loading...';
+    if (driver.isOnboarded && driver.status === 'available') {
       return 'Active';
-    } else if (user.isEmailVerified) {
-      return 'Email Verified';
+    } else if (driver.isOnboarded) {
+      return 'Onboarded';
     } else {
-      return 'Pending Verification';
+      return 'Pending Onboarding';
     }
   };
 
@@ -72,19 +72,19 @@ export const ProfileScreen: React.FC = () => {
       </View>
       
       <View style={styles.content}>
-        {/* Avatar Section */}
+        {/* Profile Picture Section */}
         <View style={styles.avatarSection}>
-          {user?.avatar ? (
+          {driver?.profilePictureUrl ? (
             <View style={styles.avatarContainer}>
               <Image 
-                source={{ uri: user.avatar }} 
+                source={{ uri: driver.profilePictureUrl }} 
                 style={[styles.avatar, { borderColor: theme.primary }]} 
               />
             </View>
           ) : (
             <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary }]}>
               <Text style={styles.avatarText}>
-                {user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'}
+                {driver ? driver.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'D'}
               </Text>
             </View>
           )}
@@ -94,7 +94,7 @@ export const ProfileScreen: React.FC = () => {
           <View style={[styles.statusBadge, { backgroundColor: `${theme.primary}1A` }]}>
             <View style={[
               styles.statusDot, 
-              { backgroundColor: user?.isOnboardingComplete ? theme.success : theme.warning }
+              { backgroundColor: driver?.isOnboarded ? theme.success : theme.warning }
             ]} />
             <Text style={[styles.statusText, { color: theme.primary }]}>{getStatus()}</Text>
           </View>
@@ -117,14 +117,14 @@ export const ProfileScreen: React.FC = () => {
                     Email
                   </Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>
-                    {user?.email || 'Loading...'}
+                    {driver?.email || 'Loading...'}
                   </Text>
                 </View>
               </View>
             </View>
 
             {/* Phone Number */}
-            {user?.phoneNumber && (
+            {driver?.phoneNumber && (
               <>
                 <View style={[styles.divider, { backgroundColor: theme.divider }]} />
                 <View style={styles.infoRow}>
@@ -137,7 +137,7 @@ export const ProfileScreen: React.FC = () => {
                         Phone
                       </Text>
                       <Text style={[styles.infoValue, { color: theme.text }]}>
-                        {user.phoneNumber}
+                        {driver.phoneNumber}
                       </Text>
                     </View>
                   </View>
@@ -146,6 +146,28 @@ export const ProfileScreen: React.FC = () => {
             )}
 
             <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+
+            {/* License Number */}
+            {driver?.licenseNumber && (
+              <>
+                <View style={styles.infoRow}>
+                  <View style={styles.infoLeft}>
+                    <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                      <Ionicons name="card-outline" size={18} color={theme.primary} />
+                    </View>
+                    <View style={styles.infoTextContainer}>
+                      <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                        License Number
+                      </Text>
+                      <Text style={[styles.infoValue, { color: theme.text }]}>
+                        {driver.licenseNumber}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+              </>
+            )}
 
             {/* Member Since */}
             <View style={styles.infoRow}>
@@ -158,7 +180,7 @@ export const ProfileScreen: React.FC = () => {
                     Member Since
                   </Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>
-                    {user ? formatDate(user.createdAt) : 'Loading...'}
+                    {driver ? formatDate(driver.createdAt) : 'Loading...'}
                   </Text>
                 </View>
               </View>
@@ -179,11 +201,11 @@ export const ProfileScreen: React.FC = () => {
                   <Text style={[
                     styles.infoValue, 
                     { 
-                      color: user?.isOnboardingComplete ? theme.success : theme.warning,
+                      color: driver?.isOnboarded ? theme.success : theme.warning,
                       fontWeight: typography.weights.semibold
                     }
                   ]}>
-                    {user?.isOnboardingComplete ? 'Completed' : 'Pending'}
+                    {driver?.isOnboarded ? 'Completed' : 'Pending'}
                   </Text>
                 </View>
               </View>

@@ -16,7 +16,7 @@ export const LoginScreen: React.FC = () => {
   const loginMutation = useLogin();
   
   // Get auth state from Redux
-  const { error, isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { error, isAuthenticated, driver } = useAppSelector((state) => state.auth);
   const isLoginLoading = loginMutation.isPending;
 
   // Clear error when component mounts
@@ -26,16 +26,16 @@ export const LoginScreen: React.FC = () => {
 
   // Navigate based on onboarding status when login is successful
   useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.isOnboardingComplete) {
-        // User has completed onboarding, go to main app
+    if (isAuthenticated && driver) {
+      if (driver.isOnboarded) {
+        // Driver has completed onboarding, go to main app
         router.replace('/(main)/(dashboard)');
       } else {
-        // User hasn't completed onboarding, go to password change first
+        // Driver hasn't completed onboarding, go to password change first
         router.replace('/(auth)/password-change');
       }
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, driver, router]);
 
   // Show error alert when login fails
   useEffect(() => {

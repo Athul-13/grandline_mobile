@@ -1,10 +1,10 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { authService } from '../../services/api/auth_service';
-import type { AuthState, User, AuthResponse } from '../../types/auth';
+import type { AuthResponse, AuthState, Driver } from '../../types/auth';
 
 // Initial state
 const initialState: AuthState = {
-  user: null,
+  driver: null,
   accessToken: null,
   refreshToken: null,
   isAuthenticated: false,
@@ -35,12 +35,12 @@ const authSlice = createSlice({
     setAuthState: (
       state,
       action: PayloadAction<{
-        user: User;
+        driver: Driver;
         accessToken: string;
         refreshToken: string;
       }>
     ) => {
-      state.user = action.payload.user;
+      state.driver = action.payload.driver;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
       state.isAuthenticated = true;
@@ -49,17 +49,17 @@ const authSlice = createSlice({
 
     // Clear authentication state (called on logout)
     clearAuthState: (state) => {
-      state.user = null;
+      state.driver = null;
       state.accessToken = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.error = null;
     },
 
-    // Update user profile (sync with React Query cache)
-    updateUserProfile: (state, action: PayloadAction<Partial<User>>) => {
-      if (state.user) {
-        state.user = { ...state.user, ...action.payload };
+    // Update driver profile (sync with React Query cache)
+    updateDriverProfile: (state, action: PayloadAction<Partial<Driver>>) => {
+      if (state.driver) {
+        state.driver = { ...state.driver, ...action.payload };
       }
     },
 
@@ -95,7 +95,7 @@ const authSlice = createSlice({
       })
       .addCase(refreshUserToken.rejected, (state) => {
         // If refresh fails, clear auth state
-        state.user = null;
+        state.driver = null;
         state.accessToken = null;
         state.refreshToken = null;
         state.isAuthenticated = false;
@@ -107,7 +107,7 @@ const authSlice = createSlice({
 export const {
   setAuthState,
   clearAuthState,
-  updateUserProfile,
+  updateDriverProfile,
   updateTokens,
   clearError,
   setLoading,
@@ -118,7 +118,7 @@ export default authSlice.reducer;
 
 // Selectors
 export const selectAuth = (state: { auth: AuthState }) => state.auth;
-export const selectUser = (state: { auth: AuthState }) => state.auth.user;
+export const selectDriver = (state: { auth: AuthState }) => state.auth.driver;
 export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   state.auth.isAuthenticated;
 export const selectIsLoading = (state: { auth: AuthState }) => state.auth.isLoading;

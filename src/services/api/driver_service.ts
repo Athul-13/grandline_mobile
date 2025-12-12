@@ -1,23 +1,10 @@
 import { API_ENDPOINTS } from '../../constants/api';
 import type { DriverOnboardingData } from '../../types/auth/auth';
-import { grandlineAxiosClient } from './axios_client';
-import { unwrapAxiosResponse } from '../../utils/response_unwrapper';
+import type { Driver } from '../../types/driver';
 import { uploadFileToCloudinary } from '../../utils/cloudinary_uploader';
+import { unwrapAxiosResponse } from '../../utils/response_unwrapper';
+import { grandlineAxiosClient } from './axios_client';
 import { userService } from './user_service';
-
-/**
- * Signed upload URL response from server
- */
-interface SignedUploadUrlResponse {
-  uploadUrl: string;
-  params: {
-    timestamp: number;
-    signature: string;
-    api_key: string;
-    folder: string;
-  };
-  expiresIn: number;
-}
 
 /**
  * Driver Service
@@ -92,11 +79,12 @@ export const driverService = {
     return unwrapAxiosResponse<{ isOnboardingComplete: boolean }>(response);
   },
 
-  getDriverProfile: async (): Promise<any> => {
+  getDriverProfile: async (): Promise<Driver> => {
     const response = await grandlineAxiosClient.get(
       API_ENDPOINTS.DRIVER.GET_DRIVER_PROFILE
     );
-    return unwrapAxiosResponse(response);
+    const unwrapped = unwrapAxiosResponse<{ driver: Driver }>(response);
+    return unwrapped.driver;
   },
 
   getDriverInfo: async (): Promise<{ hasLicense: boolean; hasProfilePicture: boolean }> => {

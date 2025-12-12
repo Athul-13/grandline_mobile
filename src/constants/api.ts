@@ -7,9 +7,8 @@ export const API_CONFIG = {
 
 // API Endpoints
 export const API_ENDPOINTS = {
-  // Authentication
+  // Authentication (Shared endpoints for drivers)
   AUTH: {
-    LOGIN: '/auth/login',
     LOGOUT: '/auth/logout',
     REFRESH_TOKEN: '/auth/token/refresh',
     FORGOT_PASSWORD: '/auth/forgot-password',
@@ -26,6 +25,8 @@ export const API_ENDPOINTS = {
   
   // Driver Onboarding
   DRIVER: {
+    LOGIN: '/driver/auth/login',
+    CHANGE_PASSWORD: '/driver/auth/change-password',
     UPDATE_LICENSE_CARD: '/driver/license-card',
     UPDATE_PROFILE_PICTURE: '/driver/profile-picture',
     ONBOARDING_PASSWORD: '/driver/onboarding/password',

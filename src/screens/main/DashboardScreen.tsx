@@ -1,19 +1,19 @@
-import React from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useLogout } from '../../hooks/auth';
-import { useProfileQuery } from '../../hooks/profile';
-import { useTheme } from '../../hooks/use-theme';
-import { spacing, borderRadius, typography } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, spacing, typography } from '../../constants/theme';
+import { useLogout } from '../../hooks/auth';
+import { useDriverProfileQuery } from '../../hooks/driver';
+import { useTheme } from '../../hooks/use-theme';
 
 export const DashboardScreen: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const logoutMutation = useLogout();
   
-  // Get user data from React Query
-  const { data: user } = useProfileQuery();
+  // Get driver data from React Query
+  const { data: driver } = useDriverProfileQuery();
 
   const handleLogout = () => {
     Alert.alert(
@@ -38,10 +38,12 @@ export const DashboardScreen: React.FC = () => {
     );
   };
 
-  // Get user's first name for welcome message
+  // Get driver's name for welcome message
   const getWelcomeMessage = () => {
-    if (!user) return 'Welcome to GrandLine!';
-    return `Welcome back, ${user.firstName}!`;
+    if (!driver) return 'Welcome to GrandLine!';
+    // Extract first name from fullName
+    const firstName = driver.fullName.split(' ')[0];
+    return `Welcome back, ${firstName}!`;
   };
 
   return (
@@ -56,7 +58,7 @@ export const DashboardScreen: React.FC = () => {
           {getWelcomeMessage()}
         </Text>
         <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          {user ? `Ready to start driving, ${user.firstName}?` : 'Loading your dashboard...'}
+          {driver ? `Ready to start driving, ${driver.fullName.split(' ')[0]}?` : 'Loading your dashboard...'}
         </Text>
       </View>
       

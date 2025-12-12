@@ -7,12 +7,12 @@ import { unwrapAxiosResponse } from '../../utils/response_unwrapper';
 import { grandlineAxiosClient } from './axios_client';
 
 /**
- * Authentication Service
+ * Authentication Service (Driver-only)
  */
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     const response = await grandlineAxiosClient.post(
-      API_ENDPOINTS.AUTH.LOGIN,
+      API_ENDPOINTS.DRIVER.LOGIN,
       credentials
     );
     return unwrapAxiosResponse<AuthResponse>(response);

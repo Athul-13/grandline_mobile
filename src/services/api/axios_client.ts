@@ -84,7 +84,7 @@ grandlineAxiosClient.interceptors.response.use(
 
       // Don't try to refresh if this is already a refresh, login, or logout request
       const isRefreshRequest = originalRequest.url?.includes(API_ENDPOINTS.AUTH.REFRESH_TOKEN);
-      const isLoginRequest = originalRequest.url?.includes(API_ENDPOINTS.AUTH.LOGIN);
+      const isLoginRequest = originalRequest.url?.includes(API_ENDPOINTS.DRIVER.LOGIN);
       const isLogoutRequest = originalRequest.url?.includes(API_ENDPOINTS.AUTH.LOGOUT);
 
       if (isRefreshRequest || isLoginRequest || isLogoutRequest) {

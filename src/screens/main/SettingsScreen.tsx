@@ -3,7 +3,7 @@ import { View, StyleSheet, Text, TouchableOpacity, Image, ScrollView, Alert } fr
 import { useRouter } from 'expo-router';
 import { useAppSelector } from '../../store/hooks';
 import { useLogout } from '../../hooks/auth';
-import { useProfileQuery } from '../../hooks/profile';
+import { useDriverProfileQuery } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
 import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,10 +13,10 @@ export const SettingsScreen: React.FC = () => {
   const { theme } = useTheme();
   const logoutMutation = useLogout();
   
-  // Get user data from React Query
-  const { data: user, error } = useProfileQuery();
+  // Get driver data from React Query
+  const { data: driver, error } = useDriverProfileQuery();
 
-  // Show error alert if user data fails to load
+  // Show error alert if driver data fails to load
   useEffect(() => {
     if (error) {
       Alert.alert(
@@ -57,24 +57,24 @@ export const SettingsScreen: React.FC = () => {
     >
       {/* Profile Section */}
       <View style={styles.profileSection}>
-        {/* User Avatar */}
-        {user?.avatar ? (
+        {/* Driver Profile Picture */}
+        {driver?.profilePictureUrl ? (
           <View style={styles.avatarContainer}>
-            <Image source={{ uri: user.avatar }} style={styles.avatar} />
+            <Image source={{ uri: driver.profilePictureUrl }} style={styles.avatar} />
           </View>
         ) : (
           <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary }]}>
             <Text style={styles.avatarText}>
-              {user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'}
+              {driver ? driver.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'D'}
             </Text>
           </View>
         )}
 
         <Text style={[styles.greeting, { color: theme.text }]}>
-          {user?.firstName || 'User'} {user?.lastName || ''}
+          {driver?.fullName || 'Driver'}
         </Text>
         <Text style={[styles.email, { color: theme.textSecondary }]}>
-          {user?.email || 'user@example.com'}
+          {driver?.email || 'driver@example.com'}
         </Text>
       </View>
 

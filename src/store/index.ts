@@ -1,25 +1,17 @@
 // Store exports
 export { store } from './store';
-export type { RootState, AppDispatch } from './store';
+export type { AppDispatch, RootState } from './store';
 
 // Store hooks
 export { useAppDispatch, useAppSelector } from './hooks';
 
 // Auth slice exports
 export {
-  refreshUserToken,
-  clearError,
-  setLoading,
-  updateUserProfile,
-  setAuthState,
-  clearAuthState,
-  updateTokens,
-  selectAuth,
-  selectUser,
-  selectIsAuthenticated,
-  selectIsLoading,
-  selectAuthError,
+    clearAuthState, clearError, refreshUserToken, selectAuth, selectAuthError, selectDriver,
+    selectIsAuthenticated,
+    selectIsLoading, setAuthState, setLoading,
+    updateDriverProfile, updateTokens
 } from './slices/auth_slice';
 
 // Re-export auth types for convenience
-export type { AuthState, User, LoginCredentials, AuthResponse } from '../types/auth';
+export type { AuthResponse, AuthState, Driver, LoginCredentials } from '../types/auth';
