@@ -1,12 +1,11 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppSelector } from '../../store/hooks';
+import React, { useEffect } from 'react';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
 import { useLogout } from '../../hooks/auth';
 import { useDriverProfileQuery } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
-import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
 
 export const SettingsScreen: React.FC = () => {
   const router = useRouter();
@@ -59,12 +58,12 @@ export const SettingsScreen: React.FC = () => {
       <View style={styles.profileSection}>
         {/* Driver Profile Picture */}
         {driver?.profilePictureUrl ? (
-          <View style={styles.avatarContainer}>
-            <Image source={{ uri: driver.profilePictureUrl }} style={styles.avatar} />
+          <View style={styles.profilePictureContainer}>
+            <Image source={{ uri: driver.profilePictureUrl }} style={styles.profilePicture} />
           </View>
         ) : (
-          <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary }]}>
-            <Text style={styles.avatarText}>
+          <View style={[styles.profilePicturePlaceholder, { backgroundColor: theme.primary }]}>
+            <Text style={styles.profilePictureText}>
               {driver ? driver.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'D'}
             </Text>
           </View>
@@ -171,16 +170,16 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     paddingHorizontal: spacing.md,
   },
-  avatarContainer: {
+  profilePictureContainer: {
     marginBottom: spacing.md,
   },
-  avatar: {
+  profilePicture: {
     width: 100,
     height: 100,
     borderRadius: borderRadius.full,
     borderWidth: 3,
   },
-  avatarPlaceholder: {
+  profilePicturePlaceholder: {
     width: 100,
     height: 100,
     borderRadius: borderRadius.full,
@@ -188,7 +187,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  avatarText: {
+  profilePictureText: {
     color: 'white',
     fontSize: typography.sizes.xxxl + 4,
     fontWeight: typography.weights.bold,

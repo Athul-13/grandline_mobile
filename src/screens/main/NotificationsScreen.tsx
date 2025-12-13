@@ -1,12 +1,12 @@
-import React from 'react';
-import { View, StyleSheet, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
+import { useTheme } from '../../hooks/use-theme';
 
 export const NotificationsScreen: React.FC = () => {
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const { theme } = useTheme();
 
   // Dummy notification data
   const notifications = [
@@ -48,15 +48,15 @@ export const NotificationsScreen: React.FC = () => {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Text style={styles.backButtonText}>← Back</Text>
+          <Text style={[styles.backButtonText, { color: theme.primary }]}>← Back</Text>
         </TouchableOpacity>
-        <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
+        <Text style={[styles.title, { color: theme.text }]}>
           Notifications
         </Text>
       </View>
@@ -67,31 +67,38 @@ export const NotificationsScreen: React.FC = () => {
             key={notification.id} 
             style={[
               styles.notificationCard,
-              !notification.isRead && styles.unreadCard
+              { 
+                backgroundColor: theme.card,
+                ...shadows.md,
+              },
+              !notification.isRead && { 
+                borderLeftWidth: 4,
+                borderLeftColor: theme.primary 
+              }
             ]}
           >
             <View style={styles.notificationHeader}>
               <Text style={[
                 styles.notificationTitle,
-                { color: Colors[colorScheme ?? 'light'].text }
+                { color: theme.text }
               ]}>
                 {notification.title}
               </Text>
               <Text style={[
                 styles.notificationTime,
-                { color: Colors[colorScheme ?? 'light'].text }
+                { color: theme.textSecondary }
               ]}>
                 {notification.time}
               </Text>
             </View>
             <Text style={[
               styles.notificationMessage,
-              { color: Colors[colorScheme ?? 'light'].text }
+              { color: theme.textSecondary }
             ]}>
               {notification.message}
             </Text>
             {!notification.isRead && (
-              <View style={styles.unreadIndicator} />
+              <View style={[styles.unreadIndicator, { backgroundColor: theme.primary }]} />
             )}
           </View>
         ))}
@@ -100,7 +107,7 @@ export const NotificationsScreen: React.FC = () => {
           <View style={styles.emptyState}>
             <Text style={[
               styles.emptyText,
-              { color: Colors[colorScheme ?? 'light'].text }
+              { color: theme.textSecondary }
             ]}>
               No notifications yet
             </Text>
@@ -114,85 +121,71 @@ export const NotificationsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F1DE',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   backButton: {
-    marginRight: 15,
+    marginRight: spacing.md,
   },
   backButtonText: {
-    fontSize: 16,
-    color: '#C5630C',
-    fontWeight: 'bold',
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 100, // Space for floating tab bar
   },
   notificationCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
     position: 'relative',
-  },
-  unreadCard: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#C5630C',
+    borderLeftWidth: 0,
   },
   notificationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   notificationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
     flex: 1,
-    marginRight: 10,
+    marginRight: spacing.sm + 2,
   },
   notificationTime: {
-    fontSize: 12,
-    opacity: 0.7,
+    fontSize: typography.sizes.xs,
   },
   notificationMessage: {
-    fontSize: 14,
+    fontSize: typography.sizes.sm,
     lineHeight: 20,
   },
   unreadIndicator: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: spacing.md,
+    right: spacing.md,
     width: 8,
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#C5630C',
+    borderRadius: borderRadius.sm,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: spacing.xxl,
   },
   emptyText: {
-    fontSize: 16,
-    opacity: 0.7,
+    fontSize: typography.sizes.md,
   },
 });

@@ -93,5 +93,15 @@ export const driverService = {
     );
     return unwrapAxiosResponse<{ hasLicense: boolean; hasProfilePicture: boolean }>(response);
   },
+
+  changePassword: async (passwordData: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> => {
+    await grandlineAxiosClient.post(
+      API_ENDPOINTS.DRIVER.CHANGE_PASSWORD,
+      passwordData
+    );
+  },
 };
 

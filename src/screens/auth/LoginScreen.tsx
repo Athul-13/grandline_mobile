@@ -2,9 +2,9 @@ import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Alert, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { LoginForm } from '../../components/auth/login_form';
-import { Colors } from '../../constants/theme';
+import { spacing, typography } from '../../constants/theme';
 import { useLogin } from '../../hooks/auth';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import { useTheme } from '../../hooks/use-theme';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { clearError } from '../../store/slices/auth_slice';
 import type { LoginCredentials } from '../../types/auth';
@@ -12,7 +12,7 @@ import type { LoginCredentials } from '../../types/auth';
 export const LoginScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const { theme } = useTheme();
   const loginMutation = useLogin();
   
   // Get auth state from Redux
@@ -63,7 +63,8 @@ export const LoginScreen: React.FC = () => {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.overlay} />
+      <View style={[styles.overlay, { backgroundColor: theme.background, opacity: 0.85 }]} />
+      
       <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -81,7 +82,7 @@ export const LoginScreen: React.FC = () => {
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
+              <Text style={[styles.title, { color: theme.text }]}>
                 Please sign in to continue
               </Text>
             </View>
@@ -89,8 +90,11 @@ export const LoginScreen: React.FC = () => {
             <LoginForm onSubmit={handleLogin} loading={isLoginLoading} />
             
             <View style={styles.forgotPasswordContainer}>
-              <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
-                <Text style={[styles.forgotPasswordText, { color: Colors[colorScheme ?? 'light'].primary }]}>
+              <TouchableOpacity 
+                onPress={() => router.push('/(auth)/forgot-password')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>
                   Forgot Password?
                 </Text>
               </TouchableOpacity>
@@ -114,8 +118,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#F4F1DE', // Your custom background color
-    opacity: 0.8, // Adjust this value to control opacity (0.0 = transparent, 1.0 = opaque)
   },
   container: {
     flex: 1,
@@ -123,33 +125,30 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing.lg,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
-    paddingHorizontal: 20,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
   logo: {
     width: 220,
     height: 220,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   forgotPasswordContainer: {
     alignItems: 'center',
-    marginTop: 16,
-    paddingHorizontal: 20,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
   },
   forgotPasswordText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
   },
 });

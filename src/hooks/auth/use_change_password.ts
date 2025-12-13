@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { userService } from '../../services/api/user_service';
+import { driverService } from '../../services/api/driver_service';
 
 interface ChangePasswordData {
   currentPassword: string;
@@ -7,12 +7,13 @@ interface ChangePasswordData {
 }
 
 /**
- * Hook for changing password
+ * Hook for changing driver password (authenticated)
+ * Uses driver-specific endpoint
  */
 export const useChangePassword = () => {
   return useMutation<void, Error, ChangePasswordData>({
     mutationFn: async (data: ChangePasswordData) => {
-      await userService.changePassword(data);
+      await driverService.changePassword(data);
     },
     onError: (error: Error) => {
       console.error('Password change failed:', error);

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Button } from '../../components/common/Button';
+import { Input } from '../../components/common/Input';
+import { borderRadius, spacing, typography } from '../../constants/theme';
+import { useChangePassword } from '../../hooks/auth';
+import { useTheme } from '../../hooks/use-theme';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { clearError } from '../../store/slices/auth_slice';
-import { useChangePassword } from '../../hooks/auth';
-import { Input } from '../../components/common/Input';
-import { Button } from '../../components/common/Button';
-import { useTheme } from '../../hooks/use-theme';
-import { spacing, borderRadius, typography } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
 
 interface PasswordChangeScreenProps {
   isOnboardingFlow?: boolean;
@@ -26,8 +26,10 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
   const changePasswordMutation = useChangePassword();
   
   const [formData, setFormData] = useState({
+    currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+    currentPasswordError: null as string | null,
     newPasswordError: null as string | null,
     confirmPasswordError: null as string | null,
   });
@@ -52,8 +54,19 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
     if (!password.trim()) {
       return 'Password is required';
     }
-    if (password.trim().length < 6) {
-      return 'Password must be at least 6 characters';
+    if (password.trim().length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    // Check for at least one lowercase, one uppercase, and one number
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      return 'Password must contain at least one lowercase letter, one uppercase letter, and one number';
+    }
+    return null;
+  };
+
+  const validateCurrentPassword = (password: string): string | null => {
+    if (!password.trim()) {
+      return 'Current password is required';
     }
     return null;
   };
@@ -66,6 +79,15 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
       return 'Passwords do not match';
     }
     return null;
+  };
+
+  const handleCurrentPasswordChange = (password: string) => {
+    const error = validateCurrentPassword(password);
+    setFormData(prev => ({
+      ...prev,
+      currentPassword: password,
+      currentPasswordError: error,
+    }));
   };
 
   const handleNewPasswordChange = (password: string) => {
@@ -87,6 +109,18 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
   };
 
   const handleContinue = async () => {
+    // For authenticated password change, validate current password
+    if (!isOnboardingFlow) {
+      const currentPasswordError = validateCurrentPassword(formData.currentPassword);
+      if (currentPasswordError) {
+        setFormData(prev => ({
+          ...prev,
+          currentPasswordError,
+        }));
+        return;
+      }
+    }
+
     const newPasswordError = validatePassword(formData.newPassword);
     const confirmPasswordError = validateConfirmPassword(formData.newPassword, formData.confirmPassword);
 
@@ -102,7 +136,7 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
     try {
       // Call password change mutation
       await changePasswordMutation.mutateAsync({
-        currentPassword: '', // In real app, you'd get this from user input
+        currentPassword: isOnboardingFlow ? '' : formData.currentPassword,
         newPassword: formData.newPassword,
       });
       
@@ -120,8 +154,13 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
           }
         }]
       );
-    } catch (error) {
-      // Error is handled by useEffect above
+    } catch (error: any) {
+      // Show error alert
+      Alert.alert(
+        'Password Change Failed',
+        error?.message || 'Failed to change password. Please check your current password and try again.',
+        [{ text: 'OK' }]
+      );
       console.error('Password change error:', error);
     }
   };
@@ -141,8 +180,12 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
     );
   };
 
-  const isFormValid = !formData.newPasswordError && !formData.confirmPasswordError && 
-                     formData.newPassword.trim() && formData.confirmPassword.trim();
+  const isFormValid = 
+    (isOnboardingFlow || (!formData.currentPasswordError && formData.currentPassword.trim())) &&
+    !formData.newPasswordError && 
+    !formData.confirmPasswordError && 
+    formData.newPassword.trim() && 
+    formData.confirmPassword.trim();
 
   return (
     <ImageBackground 
@@ -188,6 +231,18 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
             </View>
             
             <View style={styles.formContainer}>
+              {/* Current Password - only shown when changing from settings (not onboarding) */}
+              {!isOnboardingFlow && (
+                <Input
+                  label="Current Password"
+                  value={formData.currentPassword}
+                  onChangeText={handleCurrentPasswordChange}
+                  placeholder="Enter current password"
+                  secureTextEntry
+                  error={formData.currentPasswordError}
+                />
+              )}
+              
               <Input
                 label="New Password"
                 value={formData.newPassword}
@@ -210,12 +265,22 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
               <View style={[styles.requirementsBox, { backgroundColor: theme.card }]}>
                 <View style={styles.requirementRow}>
                   <Ionicons 
-                    name={formData.newPassword.length >= 6 ? "checkmark-circle" : "ellipse-outline"} 
+                    name={formData.newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"} 
                     size={20} 
-                    color={formData.newPassword.length >= 6 ? theme.success : theme.textSecondary} 
+                    color={formData.newPassword.length >= 8 ? theme.success : theme.textSecondary} 
                   />
                   <Text style={[styles.requirementText, { color: theme.text }]}>
-                    At least 6 characters
+                    At least 8 characters
+                  </Text>
+                </View>
+                <View style={styles.requirementRow}>
+                  <Ionicons 
+                    name={/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={20} 
+                    color={/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.newPassword) ? theme.success : theme.textSecondary} 
+                  />
+                  <Text style={[styles.requirementText, { color: theme.text }]}>
+                    Contains uppercase, lowercase, and number
                   </Text>
                 </View>
                 <View style={styles.requirementRow}>

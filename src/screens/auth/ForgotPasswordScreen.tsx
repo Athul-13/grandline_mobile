@@ -72,6 +72,7 @@ export const ForgotPasswordScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
+            <View style={[styles.overlay, { backgroundColor: theme.background, opacity: 0.85 }]} />
             <View style={styles.content}>
               {/* Back Button */}
               <TouchableOpacity
@@ -158,6 +159,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   backButton: {
     position: 'absolute',

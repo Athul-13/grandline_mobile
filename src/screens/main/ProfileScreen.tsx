@@ -1,18 +1,17 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppSelector } from '../../store/hooks';
+import React, { useEffect } from 'react';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
 import { useDriverProfileQuery } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
-import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
 
 export const ProfileScreen: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   
   // Get driver data from React Query
-  const { data: driver, isLoading, error } = useDriverProfileQuery();
+  const { data: driver, error } = useDriverProfileQuery();
 
   // Show error alert if driver data fails to load
   useEffect(() => {
@@ -73,22 +72,22 @@ export const ProfileScreen: React.FC = () => {
       
       <View style={styles.content}>
         {/* Profile Picture Section */}
-        <View style={styles.avatarSection}>
+        <View style={styles.profilePictureSection}>
           {driver?.profilePictureUrl ? (
-            <View style={styles.avatarContainer}>
+            <View style={styles.profilePictureContainer}>
               <Image 
                 source={{ uri: driver.profilePictureUrl }} 
-                style={[styles.avatar, { borderColor: theme.primary }]} 
+                style={[styles.profilePicture, { borderColor: theme.primary }]} 
               />
             </View>
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: theme.primary }]}>
-              <Text style={styles.avatarText}>
+            <View style={[styles.profilePicturePlaceholder, { backgroundColor: theme.primary }]}>
+              <Text style={styles.profilePictureText}>
                 {driver ? driver.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'D'}
               </Text>
             </View>
           )}
-          <Text style={[styles.userName, { color: theme.text }]}>
+          <Text style={[styles.driverName, { color: theme.text }]}>
             {getFullName()}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: `${theme.primary}1A` }]}>
@@ -230,7 +229,7 @@ export const ProfileScreen: React.FC = () => {
                   <Ionicons name="card-outline" size={18} color={theme.primary} />
                 </View>
                 <Text style={[styles.actionText, { color: theme.text }]}>
-                  Update Driver's License
+                  Update Driver&apos;s License
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.primary} />
@@ -286,20 +285,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingBottom: 100, // Extra padding for floating tab bar
   },
-  avatarSection: {
+  profilePictureSection: {
     alignItems: 'center',
     marginBottom: spacing.lg + 6,
   },
-  avatarContainer: {
+  profilePictureContainer: {
     marginBottom: spacing.md,
   },
-  avatar: {
+  profilePicture: {
     width: 100,
     height: 100,
     borderRadius: borderRadius.full,
     borderWidth: 3,
   },
-  avatarPlaceholder: {
+  profilePicturePlaceholder: {
     width: 100,
     height: 100,
     borderRadius: borderRadius.full,
@@ -307,12 +306,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.md,
   },
-  avatarText: {
+  profilePictureText: {
     color: 'white',
     fontSize: typography.sizes.xxxl + 4,
     fontWeight: typography.weights.bold,
   },
-  userName: {
+  driverName: {
     fontSize: typography.sizes.xxl,
     fontWeight: typography.weights.bold,
     marginBottom: spacing.sm,
