@@ -5,6 +5,15 @@ export const API_CONFIG = {
   RETRY_ATTEMPTS: 3,
 };
 
+// Socket Configuration Constants
+export const SOCKET_CONFIG = {
+  BASE_URL: process.env.EXPO_PUBLIC_SOCKET_URL || 'https://api.grandline.com',
+  RECONNECTION_ATTEMPTS: 5,
+  RECONNECTION_DELAY: 1000,
+  RECONNECTION_DELAY_MAX: 5000,
+  TIMEOUT: 20000,
+} as const;
+
 // API Endpoints
 export const API_ENDPOINTS = {
   // Authentication (Shared endpoints for drivers)

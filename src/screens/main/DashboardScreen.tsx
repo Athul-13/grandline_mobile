@@ -63,6 +63,15 @@ export const DashboardScreen: React.FC = () => {
       </View>
       
       <View style={styles.content}>
+        {/* Temporary button for Phase 2 testing - Remove after testing */}
+        <TouchableOpacity 
+          style={[styles.testButton, { backgroundColor: theme.primary }]}
+          onPress={() => router.push('/(main)/(settings)/test-socket')}
+        >
+          <Ionicons name="flask-outline" size={20} color="#fff" style={styles.testIcon} />
+          <Text style={styles.testButtonText}>Phase 2: Socket Test (Temporary)</Text>
+        </TouchableOpacity>
+        
         <TouchableOpacity 
           style={[styles.logoutButton, { borderColor: theme.primary }]}
           onPress={handleLogout}
@@ -106,6 +115,23 @@ const styles = StyleSheet.create({
   content: {
     width: '100%',
     maxWidth: 300,
+  },
+  testButton: {
+    paddingVertical: spacing.md - 1,
+    paddingHorizontal: spacing.lg + 6,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  testIcon: {
+    marginRight: spacing.sm,
+  },
+  testButtonText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: '#fff',
   },
   logoutButton: {
     backgroundColor: 'transparent',

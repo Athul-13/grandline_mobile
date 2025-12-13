@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { chatService } from '../../services/api/chat_service';
 import { notificationService } from '../../services/api/notification_service';
 import { chatStorage } from '../../services/storage/chat_storage';
@@ -11,6 +12,7 @@ import { notificationStorage } from '../../services/storage/notification_storage
  * This is a temporary screen for Phase 1 testing
  */
 export const TestApiScreen: React.FC = () => {
+  const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [results, setResults] = useState<string>('');
 
@@ -151,6 +153,13 @@ export const TestApiScreen: React.FC = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Phase 1: API & Storage Test</Text>
       
+      <TouchableOpacity
+        style={[styles.button, styles.navButton]}
+        onPress={() => router.push('/(main)/(settings)/test-socket')}
+      >
+        <Text style={styles.buttonText}>→ Go to Phase 2: Socket Test</Text>
+      </TouchableOpacity>
+      
       <ScrollView style={styles.buttonContainer}>
         <Text style={styles.sectionTitle}>Notification API</Text>
         <TouchableOpacity
@@ -264,6 +273,10 @@ const styles = StyleSheet.create({
   clearButton: {
     backgroundColor: '#FF3B30',
     marginTop: 16,
+  },
+  navButton: {
+    backgroundColor: '#9C27B0',
+    marginBottom: 16,
   },
   resultsContainer: {
     height: 200,
