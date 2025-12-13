@@ -13,7 +13,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to camera to take profile pictures and driver's license photos.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select profile pictures and driver's license photos."
-      }
+      },
+      "bundleIdentifier": "com.grandline.driver"
     },
     "android": {
       "adaptiveIcon": {
@@ -46,6 +47,14 @@
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./src/assets/images/logo.png",
+          "color": "#C5630C",
+          "sounds": []
         }
       ]
     ],

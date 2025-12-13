@@ -1,6 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { useSocketConnection } from '../hooks/socket/use_socket_connection';
 import { notificationService } from '../services/api/notification_service';
+import { pushNotificationService } from '../services/push/push_notification_service';
 import { notificationSocketService } from '../services/socket/notification_socket_service';
 import { notificationStorage } from '../services/storage/notification_storage';
 import type { Notification } from '../types/notifications';
@@ -59,6 +61,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       await notificationStorage.saveNotifications(response.notifications);
       await notificationStorage.saveUnreadCount(response.unreadCount);
       await notificationStorage.saveLastSync(new Date());
+
+      // Update badge count (iOS)
+      if (Platform.OS === 'ios') {
+        await pushNotificationService.setBadgeCount(response.unreadCount);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load notifications';
       setError(errorMessage);
@@ -131,6 +138,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           const newCount = prev + 1;
           // Save to storage with updated count
           notificationStorage.saveUnreadCount(newCount).catch(console.error);
+          // Update badge count (iOS)
+          if (Platform.OS === 'ios') {
+            pushNotificationService.setBadgeCount(newCount).catch(console.error);
+          }
           return newCount;
         });
         
@@ -149,6 +160,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         console.log('[NotificationContext] Unread count updated:', data.unreadCount);
         setUnreadCount(data.unreadCount);
         notificationStorage.saveUnreadCount(data.unreadCount).catch(console.error);
+        // Update badge count (iOS)
+        if (Platform.OS === 'ios') {
+          pushNotificationService.setBadgeCount(data.unreadCount).catch(console.error);
+        }
       }
     );
 
@@ -174,11 +189,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       setNotifications((prev) =>
         prev.map((n) => (n.notificationId === notificationId ? { ...n, isRead: true } : n))
       );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      const newUnreadCount = Math.max(0, unreadCount - 1);
+      setUnreadCount(newUnreadCount);
 
       // Update storage
       await notificationStorage.markAsRead(notificationId);
-      await notificationStorage.saveUnreadCount(Math.max(0, unreadCount - 1));
+      await notificationStorage.saveUnreadCount(newUnreadCount);
+
+      // Update badge count (iOS)
+      if (Platform.OS === 'ios') {
+        await pushNotificationService.setBadgeCount(newUnreadCount);
+      }
     } catch (err) {
       console.error('[NotificationContext] Error marking notification as read:', err);
       throw err;
@@ -199,6 +220,11 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       // Update storage
       await notificationStorage.markAllAsRead();
       await notificationStorage.saveUnreadCount(0);
+
+      // Update badge count (iOS)
+      if (Platform.OS === 'ios') {
+        await pushNotificationService.setBadgeCount(0);
+      }
     } catch (err) {
       console.error('[NotificationContext] Error marking all as read:', err);
       throw err;

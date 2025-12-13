@@ -3,16 +3,17 @@ import * as Linking from 'expo-linking';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 import { Provider } from 'react-redux';
-import { queryClient } from '../src/config/query_client';
-import { NotificationProvider } from '../src/contexts/notification_context';
-import { ChatProvider } from '../src/contexts/chat_context';
 import { OfflineIndicator } from '../src/components/common/offline_indicator';
-import { useOfflineQueueSync } from '../src/hooks/network/use_offline_queue_sync';
+import { queryClient } from '../src/config/query_client';
+import { ChatProvider } from '../src/contexts/chat_context';
+import { NotificationProvider } from '../src/contexts/notification_context';
 import { useAuthRestoration } from '../src/hooks/auth';
+import { useOfflineQueueSync } from '../src/hooks/network/use_offline_queue_sync';
 import { store } from '../src/store';
+import { usePushNotifications } from '../src/hooks/push/use_push_notifications';
 
 function NavigationHandler() {
   const router = useRouter();
@@ -61,6 +62,9 @@ function AppContent() {
   
   // Auto-sync offline queue when connection is restored
   useOfflineQueueSync();
+  
+  // Initialize push notifications
+  usePushNotifications();
 
   // Show loading screen during auth restoration
   if (isRestoring) {
