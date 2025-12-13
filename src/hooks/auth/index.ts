@@ -5,3 +5,5 @@ export { useLogin } from './use_login';
 export { useLogout } from './use_logout';
 export { useResetPassword } from './use_reset_password';
 
+
+export { useUpdateOnboardingPassword } from './use_update_onboarding_password';

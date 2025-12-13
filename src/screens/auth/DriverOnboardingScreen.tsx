@@ -1,23 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  Image, 
-  Alert, 
-  ScrollView, 
-  KeyboardAvoidingView, 
-  Platform 
-} from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { Button } from '../../components/common/Button';
+import { borderRadius, spacing, typography } from '../../constants/theme';
+import { useDriverOnboarding } from '../../hooks/driver';
+import { useTheme } from '../../hooks/use-theme';
+import { driverService } from '../../services/api/driver_service';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { clearError } from '../../store/slices/auth_slice';
-import { useDriverOnboarding } from '../../hooks/driver';
-import * as ImagePicker from 'expo-image-picker';
-import { useTheme } from '../../hooks/use-theme';
-import { spacing, borderRadius, typography } from '../../constants/theme';
-import { Button } from '../../components/common/Button';
 
 export const DriverOnboardingScreen: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -30,6 +31,7 @@ export const DriverOnboardingScreen: React.FC = () => {
   
   const [driverLicense, setDriverLicense] = useState<string | null>(null);
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Clear error when component mounts
   useEffect(() => {
@@ -132,10 +134,22 @@ export const DriverOnboardingScreen: React.FC = () => {
     }
 
     try {
-      // Call onboarding mutation
+      setIsUploading(true);
+      
+      // Step 1: Upload license card to Cloudinary (gets signed URL → uploads → returns Cloudinary URL)
+      // Note: We use uploadLicenseCardToCloudinary which doesn't update driver record
+      // The completeOnboarding endpoint will handle the update
+      const licenseUrl = await driverService.uploadLicenseCardToCloudinary(driverLicense!);
+      
+      // Step 2: Upload profile picture to Cloudinary (gets signed URL → uploads → returns Cloudinary URL)
+      // Note: We use uploadProfilePictureToCloudinary which doesn't update driver record
+      // The completeOnboarding endpoint will handle the update
+      const pictureUrl = await driverService.uploadProfilePictureToCloudinary(profilePicture!);
+      
+      // Step 3: Complete onboarding with Cloudinary URLs
       await onboardingMutation.mutateAsync({
-        driverLicense: driverLicense!,
-        profilePicture: profilePicture!,
+        driverLicense: licenseUrl,
+        profilePicture: pictureUrl,
       });
       
       Alert.alert(
@@ -146,9 +160,24 @@ export const DriverOnboardingScreen: React.FC = () => {
           onPress: () => router.replace('/(main)/(dashboard)')
         }]
       );
-    } catch (error) {
-      // Error is handled by useEffect above
+    } catch (error: any) {
+      // Show user-friendly error message
+      let errorMessage = 'Failed to complete onboarding. Please try again.';
+      
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      Alert.alert(
+        'Upload Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
       console.error('Onboarding error:', error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -252,8 +281,8 @@ export const DriverOnboardingScreen: React.FC = () => {
                <Button
                  title="Complete Setup"
                  onPress={handleContinue}
-                 disabled={!isComplete}
-                 loading={onboardingMutation.isPending}
+                 disabled={!isComplete || isUploading}
+                 loading={isUploading || onboardingMutation.isPending}
                  style={styles.continueButton}
                />
              </View>

@@ -34,7 +34,7 @@ grandlineAxiosClient.interceptors.request.use(
 
     // Log request in development
     if (__DEV__) {
-      console.log('🚀 API Request:', {
+      console.log('API Request:', {
         method: config.method?.toUpperCase(),
         url: config.url,
         data: config.data,
@@ -44,7 +44,9 @@ grandlineAxiosClient.interceptors.request.use(
     return config;
   },
   (error: AxiosError) => {
-    console.error('❌ Request Error:', error);
+    if (__DEV__) {
+      console.error('Request Error:', error);
+    }
     return Promise.reject(error);
   }
 );
@@ -53,7 +55,7 @@ grandlineAxiosClient.interceptors.response.use(
   (response) => {
     // Log response in development
     if (__DEV__) {
-      console.log('✅ API Response:', {
+      console.log('API Response:', {
         status: response.status,
         url: response.config.url,
         data: response.data,

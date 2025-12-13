@@ -5,7 +5,7 @@ import { Alert, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { borderRadius, spacing, typography } from '../../constants/theme';
-import { useChangePassword } from '../../hooks/auth';
+import { useChangePassword, useUpdateOnboardingPassword } from '../../hooks/auth';
 import { useTheme } from '../../hooks/use-theme';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { clearError } from '../../store/slices/auth_slice';
@@ -24,14 +24,13 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
   // Get auth state from Redux
   const { error } = useAppSelector((state) => state.auth);
   const changePasswordMutation = useChangePassword();
+  const updateOnboardingPasswordMutation = useUpdateOnboardingPassword();
   
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: '',
     currentPasswordError: null as string | null,
     newPasswordError: null as string | null,
-    confirmPasswordError: null as string | null,
   });
 
   // Clear error when component mounts
@@ -71,16 +70,6 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
     return null;
   };
 
-  const validateConfirmPassword = (password: string, confirmPassword: string): string | null => {
-    if (!confirmPassword.trim()) {
-      return 'Please confirm your password';
-    }
-    if (password !== confirmPassword) {
-      return 'Passwords do not match';
-    }
-    return null;
-  };
-
   const handleCurrentPasswordChange = (password: string) => {
     const error = validateCurrentPassword(password);
     setFormData(prev => ({
@@ -99,15 +88,6 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
     }));
   };
 
-  const handleConfirmPasswordChange = (confirmPassword: string) => {
-    const error = validateConfirmPassword(formData.newPassword, confirmPassword);
-    setFormData(prev => ({
-      ...prev,
-      confirmPassword,
-      confirmPasswordError: error,
-    }));
-  };
-
   const handleContinue = async () => {
     // For authenticated password change, validate current password
     if (!isOnboardingFlow) {
@@ -122,23 +102,29 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
     }
 
     const newPasswordError = validatePassword(formData.newPassword);
-    const confirmPasswordError = validateConfirmPassword(formData.newPassword, formData.confirmPassword);
 
-    if (newPasswordError || confirmPasswordError) {
+    if (newPasswordError) {
       setFormData(prev => ({
         ...prev,
         newPasswordError,
-        confirmPasswordError,
       }));
       return;
     }
 
     try {
-      // Call password change mutation
-      await changePasswordMutation.mutateAsync({
-        currentPassword: isOnboardingFlow ? '' : formData.currentPassword,
-        newPassword: formData.newPassword,
-      });
+      // Use correct endpoint based on flow
+      if (isOnboardingFlow) {
+        // Use onboarding password endpoint (no current password required)
+        await updateOnboardingPasswordMutation.mutateAsync({
+          newPassword: formData.newPassword,
+        });
+      } else {
+        // Use regular change password endpoint (requires current password)
+        await changePasswordMutation.mutateAsync({
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+        });
+      }
       
       Alert.alert(
         'Password Changed',
@@ -183,9 +169,7 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
   const isFormValid = 
     (isOnboardingFlow || (!formData.currentPasswordError && formData.currentPassword.trim())) &&
     !formData.newPasswordError && 
-    !formData.confirmPasswordError && 
-    formData.newPassword.trim() && 
-    formData.confirmPassword.trim();
+    formData.newPassword.trim();
 
   return (
     <ImageBackground 
@@ -252,15 +236,6 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
                 error={formData.newPasswordError}
               />
               
-              <Input
-                label="Confirm Password"
-                value={formData.confirmPassword}
-                onChangeText={handleConfirmPasswordChange}
-                placeholder="Confirm new password"
-                secureTextEntry
-                error={formData.confirmPasswordError}
-              />
-              
               {/* Password requirements */}
               <View style={[styles.requirementsBox, { backgroundColor: theme.card }]}>
                 <View style={styles.requirementRow}>
@@ -283,16 +258,6 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
                     Contains uppercase, lowercase, and number
                   </Text>
                 </View>
-                <View style={styles.requirementRow}>
-                  <Ionicons 
-                    name={formData.newPassword === formData.confirmPassword && formData.confirmPassword ? "checkmark-circle" : "ellipse-outline"} 
-                    size={20} 
-                    color={formData.newPassword === formData.confirmPassword && formData.confirmPassword ? theme.success : theme.textSecondary} 
-                  />
-                  <Text style={[styles.requirementText, { color: theme.text }]}>
-                    Passwords match
-                  </Text>
-                </View>
               </View>
               
               <View style={styles.buttonContainer}>
@@ -300,7 +265,7 @@ export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({
                   title="Change Password"
                   onPress={handleContinue}
                   disabled={!isFormValid}
-                  loading={changePasswordMutation.isPending}
+                  loading={isOnboardingFlow ? updateOnboardingPasswordMutation.isPending : changePasswordMutation.isPending}
                   style={[styles.continueButton, { backgroundColor: theme.primary }]}
                 />
                 
@@ -343,6 +308,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     paddingVertical: spacing.md + 4,
+    paddingBottom: 120, // Space for floating navbar
   },
   header: {
     alignItems: 'center',

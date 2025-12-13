@@ -33,6 +33,7 @@ export const API_ENDPOINTS = {
     COMPLETE_ONBOARDING: '/driver/onboarding',
     GET_DRIVER_PROFILE: '/driver/profile',
     GET_DRIVER_INFO: '/driver/info',
+    PROFILE_PICTURE_UPLOAD_URL: '/driver/profile/upload-url',
   },
   
   // App Features
