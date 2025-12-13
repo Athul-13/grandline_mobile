@@ -1,3 +1,4 @@
+import NetInfo from '@react-native-community/netinfo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { Socket } from 'socket.io-client';
@@ -18,7 +19,7 @@ export const useSocketConnection = () => {
   const { isAuthenticated, accessToken } = useSelector((state: RootState) => state.auth);
   const [connectionState, setConnectionState] = useState<SocketConnectionState>('disconnected');
   const [socket, setSocket] = useState<Socket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
    * Update connection state
@@ -100,6 +101,9 @@ export const useSocketConnection = () => {
   useEffect(() => {
     if (isAuthenticated && accessToken) {
       connect();
+    } else {
+      // Disconnect if not authenticated
+      disconnect();
     }
 
     // Cleanup on unmount
@@ -107,6 +111,32 @@ export const useSocketConnection = () => {
       disconnect();
     };
   }, [isAuthenticated, accessToken, connect, disconnect]);
+
+  // Monitor network changes and reconnect if needed
+  useEffect(() => {
+    if (!isAuthenticated || !accessToken) {
+      return;
+    }
+
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (state.isConnected && state.isInternetReachable) {
+        // Network is available, ensure socket is connected
+        const socketInstance = getSocketClient();
+        if (socketInstance && !socketInstance.connected) {
+          console.log('[useSocketConnection] Network reconnected, reconnecting socket...');
+          connect();
+        }
+      } else {
+        // Network is unavailable
+        console.log('[useSocketConnection] Network unavailable');
+        updateConnectionState();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [isAuthenticated, accessToken, connect, updateConnectionState]);
 
   // Update connection state periodically
   useEffect(() => {

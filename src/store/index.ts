@@ -7,9 +7,9 @@ export { useAppDispatch, useAppSelector } from './hooks';
 
 // Auth slice exports
 export {
-    clearAuthState, clearError, refreshUserToken, selectAuth, selectAuthError, selectDriver,
+    clearAuthState, clearError, refreshUserToken, restoreAuthState, selectAuth, selectAuthError, selectDriver,
     selectIsAuthenticated,
-    selectIsLoading, setAuthState, setLoading,
+    selectIsLoading, selectIsRestoring, setAuthState, setLoading, setRestoring,
     updateDriverProfile, updateTokens
 } from './slices/auth_slice';
 

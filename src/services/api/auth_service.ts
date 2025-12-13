@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '../../constants/api';
+import { authStorage } from '../../services/storage/auth_storage';
 import type {
   AuthResponse,
   LoginCredentials,
@@ -23,8 +24,17 @@ export const authService = {
   },
 
   refreshToken: async (): Promise<AuthResponse> => {
+    // Get refresh token from secure storage (for mobile)
+    const refreshToken = await authStorage.getRefreshToken();
+    
+    if (!refreshToken) {
+      throw new Error('Refresh token not found');
+    }
+
+    // Send refresh token in request body (for mobile clients)
     const response = await grandlineAxiosClient.post(
-      API_ENDPOINTS.AUTH.REFRESH_TOKEN
+      API_ENDPOINTS.AUTH.REFRESH_TOKEN,
+      { refreshToken }
     );
     return unwrapAxiosResponse<AuthResponse>(response);
   },

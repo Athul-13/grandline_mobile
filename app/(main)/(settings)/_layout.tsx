@@ -38,20 +38,6 @@ export default function SettingsLayout() {
           title: 'Change Password'
         }}
       />
-      <Stack.Screen
-        name="test-api"
-        options={{
-          headerShown: true,
-          title: 'Phase 1 Test (Temporary)'
-        }}
-      />
-      <Stack.Screen
-        name="test-socket"
-        options={{
-          headerShown: true,
-          title: 'Phase 2 Test (Temporary)'
-        }}
-      />
     </Stack>
   );
 }

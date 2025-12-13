@@ -44,6 +44,31 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const socketListenersRef = useRef<(() => void)[]>([]);
 
   /**
+   * Refresh notifications from server
+   */
+  const refreshNotifications = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await notificationService.getNotifications({ page: 1, limit: 50 });
+      setNotifications(response.notifications);
+      setUnreadCount(response.unreadCount);
+
+      // Save to storage
+      await notificationStorage.saveNotifications(response.notifications);
+      await notificationStorage.saveUnreadCount(response.unreadCount);
+      await notificationStorage.saveLastSync(new Date());
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load notifications';
+      setError(errorMessage);
+      console.error('[NotificationContext] Error refreshing notifications:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
    * Load notifications from storage on mount
    */
   useEffect(() => {
@@ -62,12 +87,25 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   }, []);
 
   /**
-   * Set up socket listeners when connected
+   * Set up socket listeners when connected and sync on startup
    */
   useEffect(() => {
     if (!isConnected) {
       return;
     }
+
+    // Sync with server on socket connection (startup or reconnection)
+    const syncOnConnection = async () => {
+      try {
+        // Refresh notifications from server
+        await refreshNotifications();
+        console.log('[NotificationContext] Synced notifications on socket connection');
+      } catch (err) {
+        console.error('[NotificationContext] Error syncing notifications:', err);
+      }
+    };
+
+    syncOnConnection();
 
     // Request unread count on connection
     const cleanupGetUnread = notificationSocketService.getUnreadCount(
@@ -123,32 +161,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       socketListenersRef.current.forEach((cleanup) => cleanup());
       socketListenersRef.current = [];
     };
-  }, [isConnected]);
-
-  /**
-   * Refresh notifications from server
-   */
-  const refreshNotifications = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await notificationService.getNotifications({ page: 1, limit: 50 });
-      setNotifications(response.notifications);
-      setUnreadCount(response.unreadCount);
-
-      // Save to storage
-      await notificationStorage.saveNotifications(response.notifications);
-      await notificationStorage.saveUnreadCount(response.unreadCount);
-      await notificationStorage.saveLastSync(new Date());
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load notifications';
-      setError(errorMessage);
-      console.error('[NotificationContext] Error refreshing notifications:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  }, [isConnected, refreshNotifications]);
 
   /**
    * Mark notification as read
