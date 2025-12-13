@@ -11,8 +11,6 @@ export const API_ENDPOINTS = {
   AUTH: {
     LOGOUT: '/auth/logout',
     REFRESH_TOKEN: '/auth/token/refresh',
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    RESET_PASSWORD: '/auth/reset-password',
   },
   
   // User Management
@@ -26,6 +24,8 @@ export const API_ENDPOINTS = {
   // Driver Onboarding
   DRIVER: {
     LOGIN: '/driver/auth/login',
+    FORGOT_PASSWORD: '/driver/auth/forgot-password',
+    RESET_PASSWORD: '/driver/auth/reset-password',
     CHANGE_PASSWORD: '/driver/auth/change-password',
     UPDATE_LICENSE_CARD: '/driver/license-card',
     UPDATE_PROFILE_PICTURE: '/driver/profile-picture',

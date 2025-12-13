@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Alert, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableWithoutFeedback, View } from 'react-native';
+import { Alert, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { LoginForm } from '../../components/auth/login_form';
 import { Colors } from '../../constants/theme';
 import { useLogin } from '../../hooks/auth';
@@ -87,6 +87,14 @@ export const LoginScreen: React.FC = () => {
             </View>
             
             <LoginForm onSubmit={handleLogin} loading={isLoginLoading} />
+            
+            <View style={styles.forgotPasswordContainer}>
+              <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
+                <Text style={[styles.forgotPasswordText, { color: Colors[colorScheme ?? 'light'].primary }]}>
+                  Forgot Password?
+                </Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -134,5 +142,14 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
+  },
+  forgotPasswordContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  forgotPasswordText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

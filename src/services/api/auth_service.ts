@@ -30,14 +30,14 @@ export const authService = {
   },
 
   forgotPassword: async (email: string): Promise<void> => {
-    await grandlineAxiosClient.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+    await grandlineAxiosClient.post(API_ENDPOINTS.DRIVER.FORGOT_PASSWORD, { email });
   },
 
   resetPassword: async (resetData: {
     token: string;
     newPassword: string;
   }): Promise<void> => {
-    await grandlineAxiosClient.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, resetData);
+    await grandlineAxiosClient.post(API_ENDPOINTS.DRIVER.RESET_PASSWORD, resetData);
   },
 };
 

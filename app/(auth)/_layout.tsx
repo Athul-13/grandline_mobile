@@ -27,6 +27,20 @@ export default function AuthLayout() {
             title: 'Driver Onboarding'
           }} 
         />
+        <Stack.Screen 
+          name="forgot-password" 
+          options={{ 
+            headerShown: false,
+            title: 'Forgot Password'
+          }} 
+        />
+        <Stack.Screen 
+          name="reset-password" 
+          options={{ 
+            headerShown: false,
+            title: 'Reset Password'
+          }} 
+        />
       </Stack>
       <StatusBar style="dark" backgroundColor="#F4F1DE" />
     </View>
