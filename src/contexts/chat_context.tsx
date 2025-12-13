@@ -1,9 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useSocketConnection } from '../hooks/socket/use_socket_connection';
+import { useNetworkStatus } from '../hooks/network/use_network_status';
 import { chatService } from '../services/api/chat_service';
 import { chatSocketService } from '../services/socket/chat_socket_service';
 import { chatStorage } from '../services/storage/chat_storage';
+import { offlineQueueService, QueueItemType } from '../services/queue/offline_queue';
 import type { RootState } from '../store/store';
 import type { Chat, Message } from '../types/chat';
 import { MessageDeliveryStatus } from '../types/chat';
@@ -48,6 +50,7 @@ interface ChatProviderProps {
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const { driver } = useSelector((state: RootState) => state.auth);
   const { isConnected } = useSocketConnection();
+  const { isConnected: isNetworkConnected } = useNetworkStatus();
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
@@ -59,6 +62,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const socketListenersRef = useRef<(() => void)[]>([]);
 
   const currentUserId = driver?.driverId || '';
+  const canSendMessages = isConnected && isNetworkConnected;
 
   /**
    * Refresh chats from server
@@ -121,6 +125,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         // Refresh chats from server
         await refreshChats();
         console.log('[ChatContext] Synced chats on socket connection');
+
+        // Sync offline queue if network is connected
+        if (isNetworkConnected) {
+          const syncResult = await offlineQueueService.syncQueue();
+          if (syncResult.success > 0) {
+            console.log(`[ChatContext] Synced ${syncResult.success} queued items`);
+          }
+          if (syncResult.failed > 0) {
+            console.warn(`[ChatContext] Failed to sync ${syncResult.failed} queued items`);
+          }
+        }
       } catch (err) {
         console.error('[ChatContext] Error syncing chats:', err);
       }
@@ -261,7 +276,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       socketListenersRef.current.forEach((cleanup) => cleanup());
       socketListenersRef.current = [];
     };
-  }, [isConnected, currentUserId, refreshChats]);
+  }, [isConnected, currentUserId, isNetworkConnected, refreshChats]);
 
   /**
    * Load messages for a specific chat
@@ -307,7 +322,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           [chatId]: [...(prev[chatId] || []), tempMessage],
         }));
 
-        // Send via socket
+        // If offline, queue the message
+        if (!canSendMessages) {
+          console.log('[ChatContext] Offline - queueing message');
+          await offlineQueueService.enqueue({
+            type: QueueItemType.SEND_MESSAGE,
+            chatId,
+            content: content.trim(),
+          });
+          // Keep temp message in UI with pending status
+          return;
+        }
+
+        // Send via socket when online
         chatSocketService.sendMessage(
           { chatId, content: content.trim() },
           (message) => {
@@ -325,13 +352,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             // Save to storage
             chatStorage.saveMessage(chatId, message).catch(console.error);
           },
-          (error) => {
+          async (error) => {
             console.error('[ChatContext] Error sending message:', error);
-            // Remove temp message on error
-            setMessages((prev) => ({
-              ...prev,
-              [chatId]: (prev[chatId] || []).filter((m) => m.messageId !== tempMessage.messageId),
-            }));
+            // Queue message if send failed
+            await offlineQueueService.enqueue({
+              type: QueueItemType.SEND_MESSAGE,
+              chatId,
+              content: content.trim(),
+            });
+            // Keep temp message in UI
           }
         );
       } catch (err) {
@@ -339,7 +368,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         throw err;
       }
     },
-    [currentUserId]
+    [currentUserId, canSendMessages]
   );
 
   /**
@@ -347,9 +376,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
    */
   const markAsRead = useCallback(async (chatId: string) => {
     try {
-      await chatService.markMessagesAsRead(chatId);
-
-      // Update local state
+      // Update local state immediately (optimistic update)
       setMessages((prev) => {
         const chatMessages = prev[chatId] || [];
         return {
@@ -372,7 +399,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         [chatId]: 0,
       }));
 
-      // Mark as read via socket
+      // If offline, queue the action
+      if (!canSendMessages) {
+        console.log('[ChatContext] Offline - queueing mark as read');
+        await offlineQueueService.enqueue({
+          type: QueueItemType.MARK_AS_READ,
+          chatId,
+        });
+        return;
+      }
+
+      // Mark as read via API and socket when online
+      await chatService.markMessagesAsRead(chatId);
       chatSocketService.markAsRead(chatId);
 
       // Update storage
@@ -383,9 +421,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       });
     } catch (err) {
       console.error('[ChatContext] Error marking messages as read:', err);
+      // Queue if failed
+      if (!canSendMessages) {
+        await offlineQueueService.enqueue({
+          type: QueueItemType.MARK_AS_READ,
+          chatId,
+        });
+      }
       throw err;
     }
-  }, [currentUserId]);
+  }, [currentUserId, canSendMessages]);
 
   /**
    * Join a chat room

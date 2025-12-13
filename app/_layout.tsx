@@ -9,6 +9,8 @@ import { Provider } from 'react-redux';
 import { queryClient } from '../src/config/query_client';
 import { NotificationProvider } from '../src/contexts/notification_context';
 import { ChatProvider } from '../src/contexts/chat_context';
+import { OfflineIndicator } from '../src/components/common/offline_indicator';
+import { useOfflineQueueSync } from '../src/hooks/network/use_offline_queue_sync';
 import { useAuthRestoration } from '../src/hooks/auth';
 import { store } from '../src/store';
 
@@ -56,6 +58,9 @@ function NavigationHandler() {
 
 function AppContent() {
   const { isRestoring } = useAuthRestoration();
+  
+  // Auto-sync offline queue when connection is restored
+  useOfflineQueueSync();
 
   // Show loading screen during auth restoration
   if (isRestoring) {
@@ -71,6 +76,7 @@ function AppContent() {
     <>
       <NavigationHandler />
       <View style={{ flex: 1, backgroundColor: '#F4F1DE' }}>
+        <OfflineIndicator />
         <Stack>
           <Stack.Screen 
             name="(auth)" 
