@@ -41,6 +41,30 @@ export const API_ENDPOINTS = {
     STATS: '/dashboard/stats',
     RECENT_ACTIVITY: '/dashboard/activity',
   },
+  
+  // Notifications
+  NOTIFICATIONS: {
+    LIST: '/notifications',
+    MARK_READ: (notificationId: string) => `/notifications/${notificationId}/mark-read`,
+    MARK_ALL_READ: '/notifications/mark-all-read',
+    UNREAD_COUNT: '/notifications/unread-count',
+  },
+  
+  // Chat
+  CHAT: {
+    LIST: '/chats',
+    CREATE: '/chats',
+    BY_CONTEXT: '/chats/by-context',
+    GET: (chatId: string) => `/chats/${chatId}`,
+  },
+  
+  // Messages
+  MESSAGES: {
+    GET_CHAT_MESSAGES: (chatId: string) => `/messages/chat/${chatId}`,
+    CHAT_UNREAD_COUNT: (chatId: string) => `/messages/chat/${chatId}/unread-count`,
+    TOTAL_UNREAD_COUNT: '/messages/unread-count',
+    MARK_AS_READ: '/messages/mark-as-read',
+  },
 };
 
 // HTTP Status Codes
