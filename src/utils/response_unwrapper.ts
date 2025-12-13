@@ -5,7 +5,7 @@ import type { ApiResponse } from '../constants/api';
  * Server returns: { success: true, ...data, message?: string } for objects
  * Server returns: { success: true, data: [...], message?: string } for arrays
  */
-export function unwrapResponse<T>(response: ApiResponse<T> | any): T {
+export function unwrapResponse<T>(response: ApiResponse<T> | unknown): T {
   // Check if this is an array response (has 'data' property that is an array)
   if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
     return response.data as T;
@@ -25,7 +25,7 @@ export function unwrapResponse<T>(response: ApiResponse<T> | any): T {
 /**
  * Unwraps response from axios response object
  */
-export function unwrapAxiosResponse<T>(axiosResponse: { data: any }): T {
+export function unwrapAxiosResponse<T>(axiosResponse: { data: unknown }): T {
   return unwrapResponse(axiosResponse.data);
 }
 

@@ -21,8 +21,12 @@ export type SocketConnectionState = 'disconnected' | 'connecting' | 'connected' 
 
 /**
  * Get or create Socket.io client instance
- * Uses JWT from Redux store auth state
- * Authentication via auth.token (primary) and query.token (fallback)
+ * 
+ * Uses JWT from Redux store auth state for authentication.
+ * Authentication is done via auth.token (primary) and query.token (fallback).
+ * Returns existing socket if already connected, or creates new one if needed.
+ * 
+ * @returns {Socket | null} Socket instance if authenticated, null otherwise
  */
 export const getSocketClient = (): Socket | null => {
   // Get current auth state
@@ -107,7 +111,11 @@ export const getSocketClient = (): Socket | null => {
 
 /**
  * Disconnect Socket.io client
- * Properly cleans up all event listeners and disconnects the socket
+ * 
+ * Properly cleans up all event listeners and disconnects the socket.
+ * This should be called when the user logs out or the app is closing.
+ * 
+ * @returns {void}
  */
 export const disconnectSocket = (): void => {
   if (socketInstance) {
@@ -120,21 +128,27 @@ export const disconnectSocket = (): void => {
 };
 
 /**
- * Check if socket is connected
+ * Check if socket is currently connected
+ * 
+ * @returns {boolean} True if socket exists and is connected, false otherwise
  */
 export const isSocketConnected = (): boolean => {
   return socketInstance?.connected ?? false;
 };
 
 /**
- * Get current socket instance (may be null)
+ * Get current socket instance
+ * 
+ * @returns {Socket | null} Current socket instance or null if not initialized
  */
 export const getSocketInstance = (): Socket | null => {
   return socketInstance;
 };
 
 /**
- * Get connection state
+ * Get current socket connection state
+ * 
+ * @returns {SocketConnectionState} Current connection state
  */
 export const getSocketConnectionState = (): SocketConnectionState => {
   if (!socketInstance) {

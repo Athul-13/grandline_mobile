@@ -10,15 +10,24 @@ import { AppState, type AppStateStatus } from 'react-native';
  * App state hook return type
  */
 export interface UseAppStateReturn {
+  /** Current app state: 'active', 'background', or 'inactive' */
   appState: AppStateStatus;
+  /** Whether app is in foreground (active) */
   isActive: boolean;
+  /** Whether app is in background */
   isBackground: boolean;
+  /** Whether app is transitioning (inactive) */
   isInactive: boolean;
 }
 
 /**
  * Hook to track app state (foreground/background)
- * Returns current app state and helper booleans
+ * 
+ * Monitors React Native AppState to detect when app moves between
+ * foreground and background. Useful for push notifications and
+ * socket connection management.
+ * 
+ * @returns {UseAppStateReturn} App state information and helper booleans
  */
 export const useAppState = (): UseAppStateReturn => {
   const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);

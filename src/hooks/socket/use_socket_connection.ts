@@ -2,6 +2,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import type { Socket } from 'socket.io-client';
+import { SOCKET_RECONNECTION_DELAY, SOCKET_STATE_UPDATE_INTERVAL } from '../../constants/socket';
 import {
     disconnectSocket,
     getSocketClient,
@@ -22,7 +23,9 @@ export const useSocketConnection = () => {
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /**
-   * Update connection state
+   * Update connection state from socket client
+   * 
+   * @returns {void}
    */
   const updateConnectionState = useCallback(() => {
     const state = getSocketConnectionState();
@@ -31,6 +34,11 @@ export const useSocketConnection = () => {
 
   /**
    * Connect to socket
+   * 
+   * Creates socket instance and establishes connection if authenticated.
+   * Sets up event listeners for connection state updates.
+   * 
+   * @returns {void}
    */
   const connect = useCallback(() => {
     if (!isAuthenticated || !accessToken) {
@@ -72,6 +80,10 @@ export const useSocketConnection = () => {
 
   /**
    * Disconnect from socket
+   * 
+   * Cleans up socket connection and clears any pending reconnection attempts.
+   * 
+   * @returns {void}
    */
   const disconnect = useCallback(() => {
     console.log('[useSocketConnection] Disconnecting socket...');
@@ -88,13 +100,17 @@ export const useSocketConnection = () => {
 
   /**
    * Reconnect to socket
+   * 
+   * Disconnects current socket and reconnects after a short delay.
+   * 
+   * @returns {void}
    */
   const reconnect = useCallback(() => {
     disconnect();
     // Small delay before reconnecting
     reconnectTimeoutRef.current = setTimeout(() => {
       connect();
-    }, 1000);
+    }, SOCKET_RECONNECTION_DELAY);
   }, [connect, disconnect]);
 
   // Auto-connect on mount if authenticated
@@ -146,7 +162,7 @@ export const useSocketConnection = () => {
 
     const interval = setInterval(() => {
       updateConnectionState();
-    }, 1000); // Update every second
+    }, SOCKET_STATE_UPDATE_INTERVAL);
 
     return () => {
       clearInterval(interval);

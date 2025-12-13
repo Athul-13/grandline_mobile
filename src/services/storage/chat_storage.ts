@@ -1,15 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CHAT_STORAGE_KEYS } from '../../constants/storage';
 import type { Chat, Message } from '../../types/chat';
-
-/**
- * Storage keys for chats
- */
-const STORAGE_KEYS = {
-  CHATS: '@grandline:chats',
-  MESSAGES: (chatId: string) => `@grandline:messages:${chatId}`,
-  LAST_SYNC: '@grandline:chats:last_sync',
-  OFFLINE_QUEUE: '@grandline:chats:offline_queue',
-} as const;
 
 /**
  * Chat Storage Service
@@ -21,7 +12,7 @@ export const chatStorage = {
    */
   async saveChats(chats: Chat[]): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.CHATS, JSON.stringify(chats));
+      await AsyncStorage.setItem(CHAT_STORAGE_KEYS.CHATS, JSON.stringify(chats));
     } catch (error) {
       console.error('[ChatStorage] Error saving chats:', error);
       throw error;
@@ -33,7 +24,7 @@ export const chatStorage = {
    */
   async getChats(): Promise<Chat[]> {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.CHATS);
+      const data = await AsyncStorage.getItem(CHAT_STORAGE_KEYS.CHATS);
       if (!data) {
         return [];
       }
@@ -91,7 +82,7 @@ export const chatStorage = {
    */
   async saveMessages(chatId: string, messages: Message[]): Promise<void> {
     try {
-      const key = STORAGE_KEYS.MESSAGES(chatId);
+      const key = CHAT_STORAGE_KEYS.MESSAGES(chatId);
       await AsyncStorage.setItem(key, JSON.stringify(messages));
     } catch (error) {
       console.error('[ChatStorage] Error saving messages:', error);
@@ -104,7 +95,7 @@ export const chatStorage = {
    */
   async getMessages(chatId: string): Promise<Message[]> {
     try {
-      const key = STORAGE_KEYS.MESSAGES(chatId);
+      const key = CHAT_STORAGE_KEYS.MESSAGES(chatId);
       const data = await AsyncStorage.getItem(key);
       if (!data) {
         return [];
@@ -156,7 +147,7 @@ export const chatStorage = {
         message,
         timestamp: new Date().toISOString(),
       });
-      await AsyncStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
+      await AsyncStorage.setItem(CHAT_STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
     } catch (error) {
       console.error('[ChatStorage] Error queueing message:', error);
       throw error;
@@ -172,7 +163,7 @@ export const chatStorage = {
     timestamp: string;
   }[]> {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+      const data = await AsyncStorage.getItem(CHAT_STORAGE_KEYS.OFFLINE_QUEUE);
       if (!data) {
         return [];
       }
@@ -188,7 +179,7 @@ export const chatStorage = {
    */
   async clearOfflineQueue(): Promise<void> {
     try {
-      await AsyncStorage.removeItem(STORAGE_KEYS.OFFLINE_QUEUE);
+      await AsyncStorage.removeItem(CHAT_STORAGE_KEYS.OFFLINE_QUEUE);
     } catch (error) {
       console.error('[ChatStorage] Error clearing offline queue:', error);
       throw error;
@@ -200,7 +191,7 @@ export const chatStorage = {
    */
   async saveLastSync(timestamp: Date): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, timestamp.toISOString());
+      await AsyncStorage.setItem(CHAT_STORAGE_KEYS.LAST_SYNC, timestamp.toISOString());
     } catch (error) {
       console.error('[ChatStorage] Error saving last sync:', error);
       throw error;
@@ -212,7 +203,7 @@ export const chatStorage = {
    */
   async getLastSync(): Promise<Date | null> {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.LAST_SYNC);
+      const data = await AsyncStorage.getItem(CHAT_STORAGE_KEYS.LAST_SYNC);
       if (!data) {
         return null;
       }
@@ -230,11 +221,11 @@ export const chatStorage = {
     try {
       const chats = await this.getChats();
       // Remove all message keys
-      const messageKeys = chats.map((chat) => STORAGE_KEYS.MESSAGES(chat.chatId));
+      const messageKeys = chats.map((chat) => CHAT_STORAGE_KEYS.MESSAGES(chat.chatId));
       await AsyncStorage.multiRemove([
-        STORAGE_KEYS.CHATS,
-        STORAGE_KEYS.LAST_SYNC,
-        STORAGE_KEYS.OFFLINE_QUEUE,
+        CHAT_STORAGE_KEYS.CHATS,
+        CHAT_STORAGE_KEYS.LAST_SYNC,
+        CHAT_STORAGE_KEYS.OFFLINE_QUEUE,
         ...messageKeys,
       ]);
     } catch (error) {

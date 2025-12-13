@@ -21,8 +21,9 @@ export const refreshUserToken = createAsyncThunk(
     try {
       const response: AuthResponse = await authService.refreshToken();
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Token refresh failed');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
+      return rejectWithValue(errorMessage);
     }
   }
 );

@@ -14,6 +14,14 @@ import { useAppState } from '../app/use_app_state';
 
 /**
  * Hook to initialize and manage push notifications
+ * 
+ * Sets up push notification listeners, registers token with server,
+ * and handles notification taps with navigation. Automatically
+ * refreshes notifications when received in foreground.
+ * 
+ * Should be called once at app root level (in _layout.tsx).
+ * 
+ * @returns {void}
  */
 export const usePushNotifications = () => {
   const router = useRouter();

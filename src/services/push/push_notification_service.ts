@@ -7,6 +7,7 @@
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { NOTIFICATION_BEHAVIOR, PUSH_NOTIFICATION_CHANNEL } from '../../constants/push';
 import { driverService } from '../api/driver_service';
 
 /**
@@ -14,11 +15,11 @@ import { driverService } from '../api/driver_service';
  */
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
+    shouldShowAlert: NOTIFICATION_BEHAVIOR.SHOULD_SHOW_ALERT,
+    shouldPlaySound: NOTIFICATION_BEHAVIOR.SHOULD_PLAY_SOUND,
+    shouldSetBadge: NOTIFICATION_BEHAVIOR.SHOULD_SET_BADGE,
+    shouldShowBanner: NOTIFICATION_BEHAVIOR.SHOULD_SHOW_BANNER,
+    shouldShowList: NOTIFICATION_BEHAVIOR.SHOULD_SHOW_LIST,
   }),
 });
 
@@ -52,11 +53,11 @@ export const pushNotificationService = {
 
       // Configure notification channel for Android
       if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'Default',
-          importance: Notifications.AndroidImportance.MAX,
+        await Notifications.setNotificationChannelAsync(PUSH_NOTIFICATION_CHANNEL.ID, {
+          name: PUSH_NOTIFICATION_CHANNEL.NAME,
+          importance: Notifications.AndroidImportance[PUSH_NOTIFICATION_CHANNEL.IMPORTANCE],
           vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
+          lightColor: PUSH_NOTIFICATION_CHANNEL.LIGHT_COLOR,
         });
       }
 
@@ -68,8 +69,12 @@ export const pushNotificationService = {
   },
 
   /**
-   * Get Expo push token (this is what we send to server)
-   * Server will use this to send notifications via Expo Push Notification service
+   * Get Expo push token
+   * 
+   * Retrieves the Expo push token for this device. This token is sent to
+   * the server and used to send push notifications via Expo Push Notification service.
+   * 
+   * @returns {Promise<string | null>} Expo push token or null if unavailable
    */
   async getExpoPushToken(): Promise<string | null> {
     try {
@@ -96,6 +101,11 @@ export const pushNotificationService = {
 
   /**
    * Register push token with server
+   * 
+   * Gets the Expo push token and sends it to the server for storage.
+   * Server will use this token to send push notifications to this device.
+   * 
+   * @returns {Promise<boolean>} True if registration successful, false otherwise
    */
   async registerToken(): Promise<boolean> {
     try {
@@ -123,7 +133,14 @@ export const pushNotificationService = {
 
   /**
    * Set up notification listeners
-   * Returns cleanup function
+   * 
+   * Registers listeners for notification events:
+   * - Notifications received while app is in foreground
+   * - User taps on notifications
+   * 
+   * @param {Function} onNotificationReceived - Callback for foreground notifications
+   * @param {Function} onNotificationTapped - Callback for notification taps
+   * @returns {(() => void) | null} Cleanup function to remove listeners, or null if socket unavailable
    */
   setupNotificationListeners(
     onNotificationReceived?: (notification: Notifications.Notification) => void,
@@ -153,7 +170,12 @@ export const pushNotificationService = {
   },
 
   /**
-   * Get last notification response (when app opened from notification)
+   * Get last notification response
+   * 
+   * Retrieves the notification that caused the app to open (if any).
+   * Useful for handling deep links when app is opened from a notification.
+   * 
+   * @returns {Promise<Notifications.NotificationResponse | null>} Last notification response or null
    */
   async getLastNotificationResponse(): Promise<Notifications.NotificationResponse | null> {
     try {
@@ -165,14 +187,22 @@ export const pushNotificationService = {
   },
 
   /**
-   * Cancel all notifications
+   * Cancel all scheduled notifications
+   * 
+   * @returns {Promise<void>}
    */
   async cancelAllNotifications(): Promise<void> {
     await Notifications.cancelAllScheduledNotificationsAsync();
   },
 
   /**
-   * Set badge count (iOS)
+   * Set badge count (iOS only)
+   * 
+   * Updates the app icon badge count to show unread notifications.
+   * Only works on iOS; Android handles badges differently.
+   * 
+   * @param {number} count - Badge count to display
+   * @returns {Promise<void>}
    */
   async setBadgeCount(count: number): Promise<void> {
     if (Platform.OS === 'ios') {

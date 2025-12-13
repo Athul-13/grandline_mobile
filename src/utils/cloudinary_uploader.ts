@@ -60,11 +60,13 @@ export async function uploadFileToCloudinary(
       const formData = new FormData();
       
       // Append file - React Native FormData handles file URIs directly
-      formData.append('file', {
+      // FormData file type for React Native
+      const fileData: { uri: string; type: string; name: string } = {
         uri: fileUri,
         type: `image/${fileExtension}`,
         name: fileName,
-      } as any);
+      };
+      formData.append('file', fileData as unknown as Blob);
 
       // Append signed parameters
       formData.append('timestamp', params.timestamp.toString());
@@ -116,15 +118,15 @@ export async function uploadFileToCloudinary(
         }
 
         throw new Error('Cloudinary response missing URL');
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         clearTimeout(timeoutId);
         
-        if (fetchError.name === 'AbortError') {
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
           throw new Error('Upload timeout. Please check your connection and try again.');
         }
         throw fetchError;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error instanceof Error ? error : new Error(String(error));
       
       // Don't retry on validation errors or client errors (4xx)

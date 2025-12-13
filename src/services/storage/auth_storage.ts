@@ -1,16 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { AUTH_STORAGE_KEYS } from '../../constants/storage';
 import type { Driver } from '../../types/driver';
-
-/**
- * Storage keys for authentication
- * Note: SecureStore keys must only contain alphanumeric characters, ".", "-", and "_"
- */
-const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'grandline_auth_access_token',
-  REFRESH_TOKEN: 'grandline_auth_refresh_token',
-  DRIVER_PROFILE: '@grandline:auth:driver_profile', // AsyncStorage can use @ and :
-} as const;
 
 /**
  * Auth Storage Service
@@ -28,11 +19,11 @@ export const authStorage = {
   }): Promise<void> {
     try {
       // Store tokens in secure storage
-      await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken);
-      await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+      await SecureStore.setItemAsync(AUTH_STORAGE_KEYS.ACCESS_TOKEN, data.accessToken);
+      await SecureStore.setItemAsync(AUTH_STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
       
       // Store driver profile in AsyncStorage (non-sensitive data)
-      await AsyncStorage.setItem(STORAGE_KEYS.DRIVER_PROFILE, JSON.stringify(data.driver));
+      await AsyncStorage.setItem(AUTH_STORAGE_KEYS.DRIVER_PROFILE, JSON.stringify(data.driver));
     } catch (error) {
       console.error('[AuthStorage] Error saving auth data:', error);
       throw error;
@@ -49,9 +40,9 @@ export const authStorage = {
   }> {
     try {
       const [accessToken, refreshToken, driverData] = await Promise.all([
-        SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
-        SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
-        AsyncStorage.getItem(STORAGE_KEYS.DRIVER_PROFILE),
+        SecureStore.getItemAsync(AUTH_STORAGE_KEYS.ACCESS_TOKEN),
+        SecureStore.getItemAsync(AUTH_STORAGE_KEYS.REFRESH_TOKEN),
+        AsyncStorage.getItem(AUTH_STORAGE_KEYS.DRIVER_PROFILE),
       ]);
 
       let driver: Driver | null = null;
@@ -83,7 +74,7 @@ export const authStorage = {
    */
   async updateAccessToken(accessToken: string): Promise<void> {
     try {
-      await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+      await SecureStore.setItemAsync(AUTH_STORAGE_KEYS.ACCESS_TOKEN, accessToken);
     } catch (error) {
       console.error('[AuthStorage] Error updating access token:', error);
       throw error;
@@ -98,8 +89,8 @@ export const authStorage = {
     refreshToken: string;
   }): Promise<void> {
     try {
-      await SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken);
-      await SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
+      await SecureStore.setItemAsync(AUTH_STORAGE_KEYS.ACCESS_TOKEN, data.accessToken);
+      await SecureStore.setItemAsync(AUTH_STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken);
     } catch (error) {
       console.error('[AuthStorage] Error updating tokens:', error);
       throw error;
@@ -112,9 +103,9 @@ export const authStorage = {
   async clearAuthData(): Promise<void> {
     try {
       await Promise.all([
-        SecureStore.deleteItemAsync(STORAGE_KEYS.ACCESS_TOKEN),
-        SecureStore.deleteItemAsync(STORAGE_KEYS.REFRESH_TOKEN),
-        AsyncStorage.removeItem(STORAGE_KEYS.DRIVER_PROFILE),
+        SecureStore.deleteItemAsync(AUTH_STORAGE_KEYS.ACCESS_TOKEN),
+        SecureStore.deleteItemAsync(AUTH_STORAGE_KEYS.REFRESH_TOKEN),
+        AsyncStorage.removeItem(AUTH_STORAGE_KEYS.DRIVER_PROFILE),
       ]);
     } catch (error) {
       console.error('[AuthStorage] Error clearing auth data:', error);
@@ -127,7 +118,7 @@ export const authStorage = {
    */
   async getAccessToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync(STORAGE_KEYS.ACCESS_TOKEN);
+      return await SecureStore.getItemAsync(AUTH_STORAGE_KEYS.ACCESS_TOKEN);
     } catch (error) {
       console.error('[AuthStorage] Error getting access token:', error);
       return null;
@@ -139,7 +130,7 @@ export const authStorage = {
    */
   async getRefreshToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+      return await SecureStore.getItemAsync(AUTH_STORAGE_KEYS.REFRESH_TOKEN);
     } catch (error) {
       console.error('[AuthStorage] Error getting refresh token:', error);
       return null;

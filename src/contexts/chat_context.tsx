@@ -1,14 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { useSocketConnection } from '../hooks/socket/use_socket_connection';
 import { useNetworkStatus } from '../hooks/network/use_network_status';
+import { useSocketConnection } from '../hooks/socket/use_socket_connection';
 import { chatService } from '../services/api/chat_service';
+import { offlineQueueService } from '../services/queue/offline_queue';
 import { chatSocketService } from '../services/socket/chat_socket_service';
 import { chatStorage } from '../services/storage/chat_storage';
-import { offlineQueueService, QueueItemType } from '../services/queue/offline_queue';
 import type { RootState } from '../store/store';
 import type { Chat, Message } from '../types/chat';
 import { MessageDeliveryStatus } from '../types/chat';
+import { QueueItemType } from '../types/queue';
 
 /**
  * Chat context state

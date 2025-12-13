@@ -5,64 +5,21 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { QUEUE_MAX_RETRY_COUNT, QUEUE_SOCKET_SEND_TIMEOUT } from '../../constants/queue';
+import { OFFLINE_QUEUE_STORAGE_KEY } from '../../constants/storage';
+import type {
+    MarkAsReadQueueItem,
+    QueueItem,
+    QueueSyncResult,
+    SendMessageQueueItem,
+} from '../../types/queue';
+import { QueueItemType } from '../../types/queue';
 import { chatService } from '../api/chat_service';
 import { chatSocketService } from '../socket/chat_socket_service';
 
-/**
- * Storage key for offline queue
- */
-const OFFLINE_QUEUE_KEY = '@grandline:offline_queue';
-
-/**
- * Queue item types
- */
-export enum QueueItemType {
-  SEND_MESSAGE = 'send_message',
-  MARK_AS_READ = 'mark_as_read',
-}
-
-/**
- * Base queue item interface
- */
-interface BaseQueueItem {
-  id: string;
-  type: QueueItemType;
-  timestamp: string;
-  retryCount: number;
-}
-
-/**
- * Send message queue item
- */
-export interface SendMessageQueueItem extends BaseQueueItem {
-  type: QueueItemType.SEND_MESSAGE;
-  chatId: string;
-  content: string;
-  contextType?: string;
-  contextId?: string;
-}
-
-/**
- * Mark as read queue item
- */
-export interface MarkAsReadQueueItem extends BaseQueueItem {
-  type: QueueItemType.MARK_AS_READ;
-  chatId: string;
-}
-
-/**
- * Union type for all queue items
- */
-export type QueueItem = SendMessageQueueItem | MarkAsReadQueueItem;
-
-/**
- * Queue sync result
- */
-export interface QueueSyncResult {
-  success: number;
-  failed: number;
-  errors: { item: QueueItem; error: string }[];
-}
+// Re-export types for backward compatibility
+export { QueueItemType };
+export type { MarkAsReadQueueItem, QueueItem, QueueSyncResult, SendMessageQueueItem };
 
 /**
  * Offline Queue Service
@@ -72,7 +29,9 @@ export const offlineQueueService = {
   /**
    * Add item to offline queue
    */
-  async enqueue(item: Omit<QueueItem, 'id' | 'timestamp' | 'retryCount'>): Promise<void> {
+  async enqueue(
+    item: Omit<SendMessageQueueItem, 'id' | 'timestamp' | 'retryCount'> | Omit<MarkAsReadQueueItem, 'id' | 'timestamp' | 'retryCount'>
+  ): Promise<void> {
     try {
       const queue = await this.getQueue();
       const queueItem: QueueItem = {
@@ -82,7 +41,7 @@ export const offlineQueueService = {
         retryCount: 0,
       } as QueueItem;
       queue.push(queueItem);
-      await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+      await AsyncStorage.setItem(OFFLINE_QUEUE_STORAGE_KEY, JSON.stringify(queue));
       console.log('[OfflineQueue] Item queued:', queueItem.id, queueItem.type);
     } catch (error) {
       console.error('[OfflineQueue] Error enqueueing item:', error);
@@ -92,10 +51,12 @@ export const offlineQueueService = {
 
   /**
    * Get all queued items
+   * 
+   * @returns {Promise<QueueItem[]>} Array of queued items
    */
   async getQueue(): Promise<QueueItem[]> {
     try {
-      const data = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+      const data = await AsyncStorage.getItem(OFFLINE_QUEUE_STORAGE_KEY);
       if (!data) {
         return [];
       }
@@ -108,12 +69,16 @@ export const offlineQueueService = {
 
   /**
    * Remove item from queue
+   * 
+   * @param {string} itemId - ID of item to remove
+   * @returns {Promise<void>}
+   * @throws {Error} If removal fails
    */
   async dequeue(itemId: string): Promise<void> {
     try {
       const queue = await this.getQueue();
       const filtered = queue.filter((item) => item.id !== itemId);
-      await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(filtered));
+      await AsyncStorage.setItem(OFFLINE_QUEUE_STORAGE_KEY, JSON.stringify(filtered));
       console.log('[OfflineQueue] Item dequeued:', itemId);
     } catch (error) {
       console.error('[OfflineQueue] Error dequeuing item:', error);
@@ -123,10 +88,15 @@ export const offlineQueueService = {
 
   /**
    * Clear entire queue
+   * 
+   * Removes all queued items from storage.
+   * 
+   * @returns {Promise<void>}
+   * @throws {Error} If clearing fails
    */
   async clearQueue(): Promise<void> {
     try {
-      await AsyncStorage.removeItem(OFFLINE_QUEUE_KEY);
+      await AsyncStorage.removeItem(OFFLINE_QUEUE_STORAGE_KEY);
       console.log('[OfflineQueue] Queue cleared');
     } catch (error) {
       console.error('[OfflineQueue] Error clearing queue:', error);
@@ -136,6 +106,8 @@ export const offlineQueueService = {
 
   /**
    * Get queue size
+   * 
+   * @returns {Promise<number>} Number of items in queue
    */
   async getQueueSize(): Promise<number> {
     const queue = await this.getQueue();
@@ -144,7 +116,12 @@ export const offlineQueueService = {
 
   /**
    * Sync queue with server
-   * Processes all queued items when connection is restored
+   * 
+   * Processes all queued items when connection is restored.
+   * Items are processed in order, with retry logic for failures.
+   * Items that exceed max retry count are removed from queue.
+   * 
+   * @returns {Promise<QueueSyncResult>} Sync result with success/failure counts
    */
   async syncQueue(): Promise<QueueSyncResult> {
     const result: QueueSyncResult = {
@@ -165,7 +142,7 @@ export const offlineQueueService = {
     for (const item of queue) {
       try {
         // Skip items that have been retried too many times
-        if (item.retryCount >= 3) {
+        if (item.retryCount >= QUEUE_MAX_RETRY_COUNT) {
           console.warn(`[OfflineQueue] Skipping item ${item.id} (max retries reached)`);
           result.failed++;
           result.errors.push({
@@ -204,7 +181,7 @@ export const offlineQueueService = {
         } else {
           // Increment retry count
           item.retryCount++;
-          await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+          await AsyncStorage.setItem(OFFLINE_QUEUE_STORAGE_KEY, JSON.stringify(queue));
           result.failed++;
           result.errors.push({
             item,
@@ -214,7 +191,7 @@ export const offlineQueueService = {
       } catch (error) {
         console.error(`[OfflineQueue] Error processing item ${item.id}:`, error);
         item.retryCount++;
-        await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+        await AsyncStorage.setItem(OFFLINE_QUEUE_STORAGE_KEY, JSON.stringify(queue));
         result.failed++;
         result.errors.push({
           item,
@@ -229,6 +206,11 @@ export const offlineQueueService = {
 
   /**
    * Process send message queue item
+   * 
+   * Sends a queued message via socket connection.
+   * 
+   * @param {SendMessageQueueItem} item - Message item to process
+   * @returns {Promise<boolean>} True if successful, false otherwise
    */
   async processSendMessage(item: SendMessageQueueItem): Promise<boolean> {
     try {
@@ -237,7 +219,7 @@ export const offlineQueueService = {
         const timeout = setTimeout(() => {
           console.error(`[OfflineQueue] Socket send timeout for ${item.id}`);
           resolve(false);
-        }, 10000); // 10 second timeout
+        }, QUEUE_SOCKET_SEND_TIMEOUT);
 
         chatSocketService.sendMessage(
           {
@@ -266,6 +248,11 @@ export const offlineQueueService = {
 
   /**
    * Process mark as read queue item
+   * 
+   * Marks messages as read via REST API.
+   * 
+   * @param {MarkAsReadQueueItem} item - Mark as read item to process
+   * @returns {Promise<boolean>} True if successful, false otherwise
    */
   async processMarkAsRead(item: MarkAsReadQueueItem): Promise<boolean> {
     try {

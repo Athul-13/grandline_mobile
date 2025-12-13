@@ -1,14 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NOTIFICATION_STORAGE_KEYS } from '../../constants/storage';
 import type { Notification } from '../../types/notifications';
-
-/**
- * Storage keys for notifications
- */
-const STORAGE_KEYS = {
-  NOTIFICATIONS: '@grandline:notifications',
-  UNREAD_COUNT: '@grandline:notifications:unread_count',
-  LAST_SYNC: '@grandline:notifications:last_sync',
-} as const;
 
 /**
  * Notification Storage Service
@@ -20,7 +12,7 @@ export const notificationStorage = {
    */
   async saveNotifications(notifications: Notification[]): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
     } catch (error) {
       console.error('[NotificationStorage] Error saving notifications:', error);
       throw error;
@@ -32,7 +24,7 @@ export const notificationStorage = {
    */
   async getNotifications(): Promise<Notification[]> {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+      const data = await AsyncStorage.getItem(NOTIFICATION_STORAGE_KEYS.NOTIFICATIONS);
       if (!data) {
         return [];
       }
@@ -122,7 +114,7 @@ export const notificationStorage = {
    */
   async saveUnreadCount(count: number): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.UNREAD_COUNT, JSON.stringify(count));
+      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEYS.UNREAD_COUNT, JSON.stringify(count));
     } catch (error) {
       console.error('[NotificationStorage] Error saving unread count:', error);
       throw error;
@@ -134,7 +126,7 @@ export const notificationStorage = {
    */
   async getUnreadCount(): Promise<number> {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.UNREAD_COUNT);
+      const data = await AsyncStorage.getItem(NOTIFICATION_STORAGE_KEYS.UNREAD_COUNT);
       if (!data) {
         return 0;
       }
@@ -150,7 +142,7 @@ export const notificationStorage = {
    */
   async saveLastSync(timestamp: Date): Promise<void> {
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, timestamp.toISOString());
+      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEYS.LAST_SYNC, timestamp.toISOString());
     } catch (error) {
       console.error('[NotificationStorage] Error saving last sync:', error);
       throw error;
@@ -162,7 +154,7 @@ export const notificationStorage = {
    */
   async getLastSync(): Promise<Date | null> {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.LAST_SYNC);
+      const data = await AsyncStorage.getItem(NOTIFICATION_STORAGE_KEYS.LAST_SYNC);
       if (!data) {
         return null;
       }
@@ -179,9 +171,9 @@ export const notificationStorage = {
   async clearAll(): Promise<void> {
     try {
       await AsyncStorage.multiRemove([
-        STORAGE_KEYS.NOTIFICATIONS,
-        STORAGE_KEYS.UNREAD_COUNT,
-        STORAGE_KEYS.LAST_SYNC,
+        NOTIFICATION_STORAGE_KEYS.NOTIFICATIONS,
+        NOTIFICATION_STORAGE_KEYS.UNREAD_COUNT,
+        NOTIFICATION_STORAGE_KEYS.LAST_SYNC,
       ]);
     } catch (error) {
       console.error('[NotificationStorage] Error clearing notifications:', error);
