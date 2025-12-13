@@ -1,25 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, changePassword, clearError } from '../../store';
-import { Input } from '../../components/common/Input';
+import React, { useEffect, useState } from 'react';
+import { Alert, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { Button } from '../../components/common/Button';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import { Input } from '../../components/common/Input';
+import { borderRadius, spacing, typography } from '../../constants/theme';
+import { useChangePassword, useUpdateOnboardingPassword } from '../../hooks/auth';
+import { useTheme } from '../../hooks/use-theme';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { clearError } from '../../store/slices/auth_slice';
 
-export const PasswordChangeScreen: React.FC = () => {
+interface PasswordChangeScreenProps {
+  isOnboardingFlow?: boolean;
+}
+
+export const PasswordChangeScreen: React.FC<PasswordChangeScreenProps> = ({ 
+  isOnboardingFlow = false 
+}) => {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const { theme } = useTheme();
   
   // Get auth state from Redux
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { error } = useAppSelector((state) => state.auth);
+  const changePasswordMutation = useChangePassword();
+  const updateOnboardingPasswordMutation = useUpdateOnboardingPassword();
   
   const [formData, setFormData] = useState({
+    currentPassword: '',
     newPassword: '',
-    confirmPassword: '',
+    currentPasswordError: null as string | null,
     newPasswordError: null as string | null,
-    confirmPasswordError: null as string | null,
   });
 
   // Clear error when component mounts
@@ -42,20 +53,30 @@ export const PasswordChangeScreen: React.FC = () => {
     if (!password.trim()) {
       return 'Password is required';
     }
-    if (password.trim().length < 6) {
-      return 'Password must be at least 6 characters';
+    if (password.trim().length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    // Check for at least one lowercase, one uppercase, and one number
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      return 'Password must contain at least one lowercase letter, one uppercase letter, and one number';
     }
     return null;
   };
 
-  const validateConfirmPassword = (password: string, confirmPassword: string): string | null => {
-    if (!confirmPassword.trim()) {
-      return 'Please confirm your password';
-    }
-    if (password !== confirmPassword) {
-      return 'Passwords do not match';
+  const validateCurrentPassword = (password: string): string | null => {
+    if (!password.trim()) {
+      return 'Current password is required';
     }
     return null;
+  };
+
+  const handleCurrentPasswordChange = (password: string) => {
+    const error = validateCurrentPassword(password);
+    setFormData(prev => ({
+      ...prev,
+      currentPassword: password,
+      currentPasswordError: error,
+    }));
   };
 
   const handleNewPasswordChange = (password: string) => {
@@ -67,48 +88,71 @@ export const PasswordChangeScreen: React.FC = () => {
     }));
   };
 
-  const handleConfirmPasswordChange = (confirmPassword: string) => {
-    const error = validateConfirmPassword(formData.newPassword, confirmPassword);
-    setFormData(prev => ({
-      ...prev,
-      confirmPassword,
-      confirmPasswordError: error,
-    }));
-  };
-
   const handleContinue = async () => {
-    const newPasswordError = validatePassword(formData.newPassword);
-    const confirmPasswordError = validateConfirmPassword(formData.newPassword, formData.confirmPassword);
+    // For authenticated password change, validate current password
+    if (!isOnboardingFlow) {
+      const currentPasswordError = validateCurrentPassword(formData.currentPassword);
+      if (currentPasswordError) {
+        setFormData(prev => ({
+          ...prev,
+          currentPasswordError,
+        }));
+        return;
+      }
+    }
 
-    if (newPasswordError || confirmPasswordError) {
+    const newPasswordError = validatePassword(formData.newPassword);
+
+    if (newPasswordError) {
       setFormData(prev => ({
         ...prev,
         newPasswordError,
-        confirmPasswordError,
       }));
       return;
     }
 
     try {
-      // Dispatch password change action
-      await dispatch(changePassword({
-        currentPassword: '', // In real app, you'd get this from user input
-        newPassword: formData.newPassword,
-        confirmPassword: formData.confirmPassword,
-      })).unwrap();
+      // Use correct endpoint based on flow
+      if (isOnboardingFlow) {
+        // Use onboarding password endpoint (no current password required)
+        await updateOnboardingPasswordMutation.mutateAsync({
+          newPassword: formData.newPassword,
+        });
+      } else {
+        // Use regular change password endpoint (requires current password)
+        await changePasswordMutation.mutateAsync({
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+        });
+      }
       
       Alert.alert(
         'Password Changed',
         'Your password has been updated successfully!',
         [{ 
           text: 'OK',
-          onPress: () => router.push('/(auth)/onboarding')
+          onPress: () => {
+            if (isOnboardingFlow) {
+              router.replace('/(auth)/onboarding');
+            } else {
+              router.back();
+            }
+          }
         }]
       );
-    } catch (error) {
-      // Error is handled by useEffect above
+    } catch (error: any) {
+      // Show error alert
+      Alert.alert(
+        'Password Change Failed',
+        error?.message || 'Failed to change password. Please check your current password and try again.',
+        [{ text: 'OK' }]
+      );
       console.error('Password change error:', error);
     }
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   const handleSkip = () => {
@@ -117,13 +161,15 @@ export const PasswordChangeScreen: React.FC = () => {
       'Password change skipped. You can change it later in settings.',
       [{ 
         text: 'OK',
-        onPress: () => router.push('/(auth)/onboarding')
+        onPress: () => router.replace('/(auth)/onboarding')
       }]
     );
   };
 
-  const isFormValid = !formData.newPasswordError && !formData.confirmPasswordError && 
-                     formData.newPassword.trim() && formData.confirmPassword.trim();
+  const isFormValid = 
+    (isOnboardingFlow || (!formData.currentPasswordError && formData.currentPassword.trim())) &&
+    !formData.newPasswordError && 
+    formData.newPassword.trim();
 
   return (
     <ImageBackground 
@@ -131,7 +177,9 @@ export const PasswordChangeScreen: React.FC = () => {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.overlay} />
+      {/* Dynamic overlay that changes with theme */}
+      <View style={[styles.overlay, { backgroundColor: theme.background }]} />
+      
       <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -144,17 +192,41 @@ export const PasswordChangeScreen: React.FC = () => {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.header}>
+              {/* Conditional Back button for profile context */}
+              {!isOnboardingFlow && (
+                <TouchableOpacity 
+                  style={styles.backButton}
+                  onPress={handleBack}
+                >
+                  <Ionicons name="arrow-back" size={24} color={theme.primary} />
+                </TouchableOpacity>
+              )}
               <Image 
                 source={require('../../assets/images/logo.png')} 
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
-                Wish to change password?
+              <Text style={[styles.title, { color: theme.text }]}>
+                {isOnboardingFlow ? 'Wish to change password?' : 'Change Password'}
+              </Text>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                Create a strong password to secure your account
               </Text>
             </View>
             
             <View style={styles.formContainer}>
+              {/* Current Password - only shown when changing from settings (not onboarding) */}
+              {!isOnboardingFlow && (
+                <Input
+                  label="Current Password"
+                  value={formData.currentPassword}
+                  onChangeText={handleCurrentPasswordChange}
+                  placeholder="Enter current password"
+                  secureTextEntry
+                  error={formData.currentPasswordError}
+                />
+              )}
+              
               <Input
                 label="New Password"
                 value={formData.newPassword}
@@ -164,30 +236,48 @@ export const PasswordChangeScreen: React.FC = () => {
                 error={formData.newPasswordError}
               />
               
-              <Input
-                label="Confirm Password"
-                value={formData.confirmPassword}
-                onChangeText={handleConfirmPasswordChange}
-                placeholder="Confirm new password"
-                secureTextEntry
-                error={formData.confirmPasswordError}
-              />
+              {/* Password requirements */}
+              <View style={[styles.requirementsBox, { backgroundColor: theme.card }]}>
+                <View style={styles.requirementRow}>
+                  <Ionicons 
+                    name={formData.newPassword.length >= 8 ? "checkmark-circle" : "ellipse-outline"} 
+                    size={20} 
+                    color={formData.newPassword.length >= 8 ? theme.success : theme.textSecondary} 
+                  />
+                  <Text style={[styles.requirementText, { color: theme.text }]}>
+                    At least 8 characters
+                  </Text>
+                </View>
+                <View style={styles.requirementRow}>
+                  <Ionicons 
+                    name={/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.newPassword) ? "checkmark-circle" : "ellipse-outline"} 
+                    size={20} 
+                    color={/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.newPassword) ? theme.success : theme.textSecondary} 
+                  />
+                  <Text style={[styles.requirementText, { color: theme.text }]}>
+                    Contains uppercase, lowercase, and number
+                  </Text>
+                </View>
+              </View>
               
               <View style={styles.buttonContainer}>
                 <Button
-                  title="Continue"
+                  title="Change Password"
                   onPress={handleContinue}
                   disabled={!isFormValid}
-                  loading={isLoading}
-                  style={styles.continueButton}
+                  loading={isOnboardingFlow ? updateOnboardingPasswordMutation.isPending : changePasswordMutation.isPending}
+                  style={[styles.continueButton, { backgroundColor: theme.primary }]}
                 />
                 
-                <Button
-                  title="Skip"
-                  onPress={handleSkip}
-                  variant="secondary"
-                  style={styles.skipButton}
-                />
+                {/* Conditional Skip button for onboarding flow */}
+                {isOnboardingFlow && (
+                  <Button
+                    title="Skip for Now"
+                    onPress={handleSkip}
+                    variant="secondary"
+                    style={[styles.skipButton, { borderColor: theme.primary }]}
+                  />
+                )}
               </View>
             </View>
           </ScrollView>
@@ -209,8 +299,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#F4F1DE',
-    opacity: 0.8,
+    opacity: 0.92, // Slightly transparent to show subtle background texture
   },
   container: {
     flex: 1,
@@ -218,37 +307,69 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing.md + 4,
+    paddingBottom: 120, // Space for floating navbar
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
-    paddingHorizontal: 20,
+    marginBottom: spacing.xl + 8,
+    paddingHorizontal: spacing.md,
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 0,
+    left: spacing.md,
+    zIndex: 1,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logo: {
     width: 130,
     height: 130,
-    marginBottom: 20,
+    marginBottom: spacing.md + 4,
     transform: [{ translateX: -5 }],
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
     textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    fontSize: typography.sizes.sm,
+    textAlign: 'center',
+    opacity: 0.8,
   },
   formContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.md,
+    gap: spacing.md,
+  },
+  requirementsBox: {
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    gap: spacing.sm,
+  },
+  requirementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm + 4,
+  },
+  requirementText: {
+    fontSize: typography.sizes.sm,
   },
   buttonContainer: {
-    marginTop: 20,
-    gap: 12,
+    marginTop: spacing.md + 4,
+    gap: spacing.sm + 4,
   },
   continueButton: {
-    backgroundColor: '#C5630C',
+    borderRadius: borderRadius.md,
   },
   skipButton: {
-    backgroundColor: '#F4F1DE',
-    borderColor: '#C5630C',
-    borderWidth: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderRadius: borderRadius.md,
   },
 });

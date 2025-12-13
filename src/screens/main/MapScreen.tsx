@@ -1,8 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, View, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import MapView, { Marker, Region } from 'react-native-maps';
-import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import MapView, { Marker, Region } from 'react-native-maps';
+import { borderRadius, shadows, spacing } from '../../constants/theme';
+import { useTheme } from '../../hooks/use-theme';
 
 interface MapRegion {
   latitude: number;
@@ -12,6 +14,7 @@ interface MapRegion {
 }
 
 export const MapScreen: React.FC = () => {
+  const { theme } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [region, setRegion] = useState<MapRegion>({
     latitude: 9.9312, // Kochi fallback
@@ -58,20 +61,20 @@ export const MapScreen: React.FC = () => {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#1E88E5" />
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
         initialRegion={region}
         showsUserLocation={true}
-        showsMyLocationButton={false} // we’re adding our own button
+        showsMyLocationButton={false} // we're adding our own button
         onRegionChangeComplete={(newRegion: Region) => setRegion(newRegion)}
       >
         <Marker
@@ -85,15 +88,27 @@ export const MapScreen: React.FC = () => {
       </MapView>
 
       {/* Floating Recenter Button */}
-      <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
-        <Ionicons name="locate-outline" size={28} color="#fff" />
+      <TouchableOpacity 
+        style={[
+          styles.recenterButton, 
+          { 
+            backgroundColor: theme.primary,
+            ...shadows.lg,
+          }
+        ]} 
+        onPress={handleRecenter}
+      >
+        <Ionicons name="locate-outline" size={28} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { 
+    flex: 1,
+    paddingBottom: 100, // Space for floating tab bar
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -102,14 +117,8 @@ const styles = StyleSheet.create({
   recenterButton: {
     position: 'absolute',
     bottom: 140,
-    right: 20,
-    backgroundColor: '#1E88E5',
-    borderRadius: 30,
-    padding: 12,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    right: spacing.lg,
+    borderRadius: borderRadius.full,
+    padding: spacing.md,
   },
 });

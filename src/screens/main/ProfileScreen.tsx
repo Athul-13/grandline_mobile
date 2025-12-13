@@ -1,26 +1,19 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, ImageBackground, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, logoutUser, getCurrentUser } from '../../store';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import React, { useEffect } from 'react';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
+import { useDriverProfileQuery } from '../../hooks/driver';
+import { useTheme } from '../../hooks/use-theme';
 
 export const ProfileScreen: React.FC = () => {
-  const dispatch = useAppDispatch();
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const { theme } = useTheme();
   
-  // Get user data from Redux state
-  const { user, isLoading, error } = useAppSelector((state) => state.auth);
+  // Get driver data from React Query
+  const { data: driver, error } = useDriverProfileQuery();
 
-  // Load user data when component mounts
-  useEffect(() => {
-    if (!user) {
-      dispatch(getCurrentUser());
-    }
-  }, [dispatch, user]);
-
-  // Show error alert if user data fails to load
+  // Show error alert if driver data fails to load
   useEffect(() => {
     if (error) {
       Alert.alert(
@@ -30,33 +23,6 @@ export const ProfileScreen: React.FC = () => {
       );
     }
   }, [error]);
-
-  const handleBack = () => {
-    router.back();
-  };
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await dispatch(logoutUser()).unwrap();
-              router.replace('/(auth)/login');
-            } catch (error) {
-              // Even if logout fails, navigate to login
-              router.replace('/(auth)/login');
-            }
-          }
-        }
-      ]
-    );
-  };
 
   // Format date helper
   const formatDate = (dateString: string) => {
@@ -68,246 +34,372 @@ export const ProfileScreen: React.FC = () => {
     });
   };
 
-  // Get user's full name
+  // Get driver's full name
   const getFullName = () => {
-    if (!user) return 'Loading...';
-    return `${user.firstName} ${user.lastName}`;
+    if (!driver) return 'Loading...';
+    return driver.fullName;
   };
 
-  // Get status text
+  // Get status text based on driver status
   const getStatus = () => {
-    if (!user) return 'Loading...';
-    if (user.isEmailVerified && user.isOnboardingComplete) {
+    if (!driver) return 'Loading...';
+    if (driver.isOnboarded && driver.status === 'available') {
       return 'Active';
-    } else if (user.isEmailVerified) {
-      return 'Email Verified';
+    } else if (driver.isOnboarded) {
+      return 'Onboarded';
     } else {
-      return 'Pending Verification';
+      return 'Pending Onboarding';
     }
   };
 
   return (
-    <ImageBackground 
-      source={require('../../assets/images/login-bg.png')} 
-      style={styles.backgroundImage}
-      resizeMode="cover"
+    <ScrollView 
+      style={[styles.container, { backgroundColor: theme.background }]}
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.overlay} />
-      <ScrollView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
-          
-          <Image 
-            source={require('../../assets/images/logo.png')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
-            User Profile
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: theme.text }]}>
+          Profile
+        </Text>
+        <View style={{ width: 24 }} />
+      </View>
+      
+      <View style={styles.content}>
+        {/* Profile Picture Section */}
+        <View style={styles.profilePictureSection}>
+          {driver?.profilePictureUrl ? (
+            <View style={styles.profilePictureContainer}>
+              <Image 
+                source={{ uri: driver.profilePictureUrl }} 
+                style={[styles.profilePicture, { borderColor: theme.primary }]} 
+              />
+            </View>
+          ) : (
+            <View style={[styles.profilePicturePlaceholder, { backgroundColor: theme.primary }]}>
+              <Text style={styles.profilePictureText}>
+                {driver ? driver.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'D'}
+              </Text>
+            </View>
+          )}
+          <Text style={[styles.driverName, { color: theme.text }]}>
+            {getFullName()}
           </Text>
+          <View style={[styles.statusBadge, { backgroundColor: `${theme.primary}1A` }]}>
+            <View style={[
+              styles.statusDot, 
+              { backgroundColor: driver?.isOnboarded ? theme.success : theme.warning }
+            ]} />
+            <Text style={[styles.statusText, { color: theme.primary }]}>{getStatus()}</Text>
+          </View>
         </View>
-        
-        <View style={styles.content}>
-          <View style={styles.profileCard}>
-            {/* User Avatar */}
-            {user?.avatar ? (
-              <View style={styles.avatarContainer}>
-                <Image source={{ uri: user.avatar }} style={styles.avatar} />
-              </View>
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
-                  {user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'}
-                </Text>
-              </View>
-            )}
 
-            {/* Full Name */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Name:
-            </Text>
-            <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-              {getFullName()}
-            </Text>
-            
+        {/* Personal Information Card */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            Personal Information
+          </Text>
+          <View style={[styles.card, { backgroundColor: theme.card }]}>
             {/* Email */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Email:
-            </Text>
-            <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-              {user?.email || 'Loading...'}
-            </Text>
-            
+            <View style={styles.infoRow}>
+              <View style={styles.infoLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="mail-outline" size={18} color={theme.primary} />
+                </View>
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                    Email
+                  </Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>
+                    {driver?.email || 'Loading...'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
             {/* Phone Number */}
-            {user?.phoneNumber && (
+            {driver?.phoneNumber && (
               <>
-                <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-                  Phone:
-                </Text>
-                <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-                  {user.phoneNumber}
-                </Text>
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                <View style={styles.infoRow}>
+                  <View style={styles.infoLeft}>
+                    <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                      <Ionicons name="call-outline" size={18} color={theme.primary} />
+                    </View>
+                    <View style={styles.infoTextContainer}>
+                      <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                        Phone
+                      </Text>
+                      <Text style={[styles.infoValue, { color: theme.text }]}>
+                        {driver.phoneNumber}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
               </>
             )}
-            
-            {/* Status */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Status:
-            </Text>
-            <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-              {getStatus()}
-            </Text>
-            
+
+            <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+
+            {/* License Number */}
+            {driver?.licenseNumber && (
+              <>
+                <View style={styles.infoRow}>
+                  <View style={styles.infoLeft}>
+                    <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                      <Ionicons name="card-outline" size={18} color={theme.primary} />
+                    </View>
+                    <View style={styles.infoTextContainer}>
+                      <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                        License Number
+                      </Text>
+                      <Text style={[styles.infoValue, { color: theme.text }]}>
+                        {driver.licenseNumber}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+              </>
+            )}
+
             {/* Member Since */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Member Since:
-            </Text>
-            <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-              {user ? formatDate(user.createdAt) : 'Loading...'}
-            </Text>
+            <View style={styles.infoRow}>
+              <View style={styles.infoLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="calendar-outline" size={18} color={theme.primary} />
+                </View>
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                    Member Since
+                  </Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>
+                    {driver ? formatDate(driver.createdAt) : 'Loading...'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={[styles.divider, { backgroundColor: theme.divider }]} />
 
             {/* Onboarding Status */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Onboarding:
-            </Text>
-            <Text style={[
-              styles.value, 
-              { 
-                color: user?.isOnboardingComplete ? '#4CAF50' : '#FF9800',
-                fontWeight: 'bold'
-              }
-            ]}>
-              {user?.isOnboardingComplete ? 'Completed' : 'Pending'}
-            </Text>
+            <View style={styles.infoRow}>
+              <View style={styles.infoLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="checkmark-circle-outline" size={18} color={theme.primary} />
+                </View>
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                    Onboarding
+                  </Text>
+                  <Text style={[
+                    styles.infoValue, 
+                    { 
+                      color: driver?.isOnboarded ? theme.success : theme.warning,
+                      fontWeight: typography.weights.semibold
+                    }
+                  ]}>
+                    {driver?.isOnboarded ? 'Completed' : 'Pending'}
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
-          
-          <TouchableOpacity 
-            style={[styles.button, styles.logoutButton]}
-            onPress={handleLogout}
-          >
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
         </View>
-      </ScrollView>
-    </ImageBackground>
+
+        {/* Actions Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            Actions
+          </Text>
+          <View style={[styles.card, { backgroundColor: theme.card }]}>
+            <TouchableOpacity 
+              style={styles.actionRow}
+              onPress={() => {
+                Alert.alert('Coming Soon', 'Update driver\'s license functionality will be available soon.');
+              }}
+            >
+              <View style={styles.actionLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="card-outline" size={18} color={theme.primary} />
+                </View>
+                <Text style={[styles.actionText, { color: theme.text }]}>
+                  Update Driver&apos;s License
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+
+            <TouchableOpacity 
+              style={styles.actionRow}
+              onPress={() => router.push('/(main)/(settings)/change-password')}
+            >
+              <View style={styles.actionLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="lock-closed-outline" size={18} color={theme.primary} />
+                </View>
+                <Text style={[styles.actionText, { color: theme.text }]}>
+                  Change Password
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#F4F1DE',
-    opacity: 0.8,
-  },
   container: {
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingBottom: spacing.md + 4,
+    paddingHorizontal: spacing.md,
   },
   backButton: {
-    position: 'absolute',
-    left: 20,
-    top: 60,
-    padding: 10,
-  },
-  backButtonText: {
-    color: '#C5630C',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    marginBottom: 20,
-    transform: [{ translateX: -10 }],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  profileCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 3,
-    borderColor: '#C5630C',
-  },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#C5630C',
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  avatarText: {
-    color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
+  title: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 15,
-    marginBottom: 5,
-    textAlign: 'center',
+  content: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: 100, // Extra padding for floating tab bar
   },
-  value: {
-    fontSize: 16,
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: '#C5630C',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
+  profilePictureSection: {
     alignItems: 'center',
+    marginBottom: spacing.lg + 6,
   },
-  logoutButton: {
-    backgroundColor: 'transparent',
-    borderColor: '#C5630C',
-    borderWidth: 2,
+  profilePictureContainer: {
+    marginBottom: spacing.md,
   },
-  logoutButtonText: {
-    color: '#C5630C',
-    fontSize: 16,
-    fontWeight: 'bold',
+  profilePicture: {
+    width: 100,
+    height: 100,
+    borderRadius: borderRadius.full,
+    borderWidth: 3,
+  },
+  profilePicturePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  profilePictureText: {
+    color: 'white',
+    fontSize: typography.sizes.xxxl + 4,
+    fontWeight: typography.weights.bold,
+  },
+  driverName: {
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing.sm,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: 6,
+    borderRadius: borderRadius.md + 4,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: borderRadius.full,
+    marginRight: 6,
+  },
+  statusText: {
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.semibold,
+  },
+  section: {
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+    marginLeft: 4,
+    opacity: 0.6,
+  },
+  card: {
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    ...shadows.md,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  infoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm + 4,
+  },
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: typography.sizes.xs + 1,
+    opacity: 0.6,
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+  },
+  divider: {
+    height: 1,
+    marginLeft: 64,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  actionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  actionText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
   },
 });

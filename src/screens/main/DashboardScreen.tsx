@@ -1,24 +1,19 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, ImageBackground, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, logoutUser, getCurrentUser } from '../../store';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import React from 'react';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, spacing, typography } from '../../constants/theme';
+import { useLogout } from '../../hooks/auth';
+import { useDriverProfileQuery } from '../../hooks/driver';
+import { useTheme } from '../../hooks/use-theme';
 
 export const DashboardScreen: React.FC = () => {
-  const dispatch = useAppDispatch();
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const { theme } = useTheme();
+  const logoutMutation = useLogout();
   
-  // Get user data from Redux state
-  const { user } = useAppSelector((state) => state.auth);
-
-  // Load user data when component mounts
-  useEffect(() => {
-    if (!user) {
-      dispatch(getCurrentUser());
-    }
-  }, [dispatch, user]);
+  // Get driver data from React Query
+  const { data: driver } = useDriverProfileQuery();
 
   const handleLogout = () => {
     Alert.alert(
@@ -31,7 +26,7 @@ export const DashboardScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await dispatch(logoutUser()).unwrap();
+              await logoutMutation.mutateAsync();
               router.replace('/(auth)/login');
             } catch {
               // Even if logout fails, navigate to login
@@ -43,46 +38,40 @@ export const DashboardScreen: React.FC = () => {
     );
   };
 
-  // Get user's first name for welcome message
+  // Get driver's name for welcome message
   const getWelcomeMessage = () => {
-    if (!user) return 'Welcome to GrandLine!';
-    return `Welcome back, ${user.firstName}!`;
+    if (!driver) return 'Welcome to GrandLine!';
+    // Extract first name from fullName
+    const firstName = driver.fullName.split(' ')[0];
+    return `Welcome back, ${firstName}!`;
   };
 
   return (
-    <>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Image 
-            source={require('../../assets/images/mainpage-logo.png')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
-            {getWelcomeMessage()}
-          </Text>
-          <Text style={[styles.subtitle, { color: Colors[colorScheme ?? 'light'].text }]}>
-            {user ? `Ready to start driving, ${user.firstName}?` : 'Loading your dashboard...'}
-          </Text>
-        </View>
-        
-        <View style={styles.content}>
-          <TouchableOpacity 
-            style={styles.button}
-            onPress={() => router.push('/(main)/profile')}
-          >
-            <Text style={styles.buttonText}>View Profile</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.button, styles.logoutButton]}
-            onPress={handleLogout}
-          >
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.header}>
+        <Image 
+          source={require('../../assets/images/mainpage-logo.png')} 
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={[styles.title, { color: theme.text }]}>
+          {getWelcomeMessage()}
+        </Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          {driver ? `Ready to start driving, ${driver.fullName.split(' ')[0]}?` : 'Loading your dashboard...'}
+        </Text>
       </View>
-    </>
+      
+      <View style={styles.content}>
+        <TouchableOpacity 
+          style={[styles.logoutButton, { borderColor: theme.primary }]}
+          onPress={handleLogout}
+        >
+          <Ionicons name="log-out-outline" size={20} color={theme.primary} style={styles.logoutIcon} />
+          <Text style={[styles.logoutButtonText, { color: theme.primary }]}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
@@ -91,26 +80,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: '#F4F1DE',
+    paddingHorizontal: spacing.md,
+    paddingBottom: 100, // Space for floating tab bar
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: spacing.xl,
   },
   logo: {
     width: 200,
     height: 200,
-    marginBottom: 20,
+    marginBottom: spacing.md + 4,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: typography.sizes.md,
     textAlign: 'center',
     opacity: 0.8,
   },
@@ -118,27 +107,21 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 300,
   },
-  button: {
-    backgroundColor: '#C5630C',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    marginBottom: 15,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   logoutButton: {
     backgroundColor: 'transparent',
-    borderColor: '#C5630C',
     borderWidth: 2,
+    paddingVertical: spacing.md - 1,
+    paddingHorizontal: spacing.lg + 6,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  logoutIcon: {
+    marginRight: spacing.sm,
   },
   logoutButtonText: {
-    color: '#C5630C',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
   },
 });

@@ -1,24 +1,21 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, Image, ImageBackground, ScrollView, Alert } from 'react-native';
-import { useAppDispatch, useAppSelector, logoutUser, getCurrentUser } from '../../store';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
+import { useLogout } from '../../hooks/auth';
+import { useDriverProfileQuery } from '../../hooks/driver';
+import { useTheme } from '../../hooks/use-theme';
 
 export const SettingsScreen: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const colorScheme = useColorScheme();
+  const router = useRouter();
+  const { theme } = useTheme();
+  const logoutMutation = useLogout();
   
-  // Get user data from Redux state
-  const { user, isLoading, error } = useAppSelector((state) => state.auth);
+  // Get driver data from React Query
+  const { data: driver, error } = useDriverProfileQuery();
 
-  // Load user data when component mounts
-  useEffect(() => {
-    if (!user) {
-      dispatch(getCurrentUser());
-    }
-  }, [dispatch, user]);
-
-  // Show error alert if user data fails to load
+  // Show error alert if driver data fails to load
   useEffect(() => {
     if (error) {
       Alert.alert(
@@ -40,9 +37,11 @@ export const SettingsScreen: React.FC = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await dispatch(logoutUser()).unwrap();
+              await logoutMutation.mutateAsync();
+              router.replace('/(auth)/login');
             } catch {
-              // Even if logout fails, continue
+              // Even if logout fails, navigate to login
+              router.replace('/(auth)/login');
             }
           }
         }
@@ -50,128 +49,113 @@ export const SettingsScreen: React.FC = () => {
     );
   };
 
-  // Format date helper
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  };
-
-  // Get user's full name
-  const getFullName = () => {
-    if (!user) return 'Loading...';
-    return `${user.firstName} ${user.lastName}`;
-  };
-
-  // Get status text
-  const getStatus = () => {
-    if (!user) return 'Loading...';
-    if (user.isEmailVerified && user.isOnboardingComplete) {
-      return 'Active';
-    } else if (user.isEmailVerified) {
-      return 'Email Verified';
-    } else {
-      return 'Pending Verification';
-    }
-  };
-
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Image 
-          source={require('../../assets/images/logo.png')} 
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
-          Settings
-        </Text>
-      </View>
-      
-      <View style={styles.content}>
-          <View style={styles.profileCard}>
-            {/* User Avatar */}
-            {user?.avatar ? (
-              <View style={styles.avatarContainer}>
-                <Image source={{ uri: user.avatar }} style={styles.avatar} />
-              </View>
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>
-                  {user ? `${user.firstName[0]}${user.lastName[0]}` : 'U'}
-                </Text>
-              </View>
-            )}
-
-            {/* Full Name */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Name:
-            </Text>
-            <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-              {getFullName()}
-            </Text>
-            
-            {/* Email */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Email:
-            </Text>
-            <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-              {user?.email || 'Loading...'}
-            </Text>
-            
-            {/* Phone Number */}
-            {user?.phoneNumber && (
-              <>
-                <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-                  Phone:
-                </Text>
-                <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-                  {user.phoneNumber}
-                </Text>
-              </>
-            )}
-            
-            {/* Status */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Status:
-            </Text>
-            <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-              {getStatus()}
-            </Text>
-            
-            {/* Member Since */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Member Since:
-            </Text>
-            <Text style={[styles.value, { color: Colors[colorScheme ?? 'light'].text }]}>
-              {user ? formatDate(user.createdAt) : 'Loading...'}
-            </Text>
-
-            {/* Onboarding Status */}
-            <Text style={[styles.label, { color: Colors[colorScheme ?? 'light'].text }]}>
-              Onboarding:
-            </Text>
-            <Text style={[
-              styles.value, 
-              { 
-                color: user?.isOnboardingComplete ? '#4CAF50' : '#FF9800',
-                fontWeight: 'bold'
-              }
-            ]}>
-              {user?.isOnboardingComplete ? 'Completed' : 'Pending'}
+    <ScrollView 
+      style={[styles.container, { backgroundColor: theme.background }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Profile Section */}
+      <View style={styles.profileSection}>
+        {/* Driver Profile Picture */}
+        {driver?.profilePictureUrl ? (
+          <View style={styles.profilePictureContainer}>
+            <Image source={{ uri: driver.profilePictureUrl }} style={styles.profilePicture} />
+          </View>
+        ) : (
+          <View style={[styles.profilePicturePlaceholder, { backgroundColor: theme.primary }]}>
+            <Text style={styles.profilePictureText}>
+              {driver ? driver.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'D'}
             </Text>
           </View>
-          
-          <TouchableOpacity 
-            style={[styles.button, styles.logoutButton]}
-            onPress={handleLogout}
-          >
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
+        )}
+
+        <Text style={[styles.greeting, { color: theme.text }]}>
+          {driver?.fullName || 'Driver'}
+        </Text>
+        <Text style={[styles.email, { color: theme.textSecondary }]}>
+          {driver?.email || 'driver@example.com'}
+        </Text>
+      </View>
+
+      {/* Settings Sections */}
+      <View style={styles.content}>
+        {/* Account Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            Account
+          </Text>
+          <View style={[styles.card, { backgroundColor: theme.card }]}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => router.push('/(main)/(settings)/profile')}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="person-outline" size={20} color={theme.primary} />
+                </View>
+                <Text style={[styles.menuItemText, { color: theme.text }]}>
+                  Profile
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => router.push('/(main)/(settings)/notifications')}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="notifications-outline" size={20} color={theme.primary} />
+                </View>
+                <Text style={[styles.menuItemText, { color: theme.text }]}>
+                  Notifications
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
+
+        {/* Support Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            Support
+          </Text>
+          <View style={[styles.card, { backgroundColor: theme.card }]}>
+            <TouchableOpacity 
+              style={styles.menuItem}
+              onPress={() => router.push('/(main)/(settings)/report-issue')}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="alert-circle-outline" size={20} color={theme.primary} />
+                </View>
+                <Text style={[styles.menuItemText, { color: theme.text }]}>
+                  Report an Issue
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity 
+          style={[styles.logoutButton, { borderColor: theme.primary }]}
+          onPress={handleLogout}
+        >
+          <Ionicons name="log-out-outline" size={20} color={theme.primary} style={styles.logoutIcon} />
+          <Text style={[styles.logoutButtonText, { color: theme.primary }]}>Logout</Text>
+        </TouchableOpacity>
+
+        {/* App Version */}
+        <Text style={[styles.version, { color: theme.textSecondary }]}>
+          Version 1.0.0
+        </Text>
+      </View>
     </ScrollView>
   );
 };
@@ -179,92 +163,116 @@ export const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F1DE',
   },
-  header: {
+  profileSection: {
     alignItems: 'center',
     paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
-  logo: {
+  profilePictureContainer: {
+    marginBottom: spacing.md,
+  },
+  profilePicture: {
     width: 100,
     height: 100,
-    marginBottom: 20,
-    transform: [{ translateX: -10 }],
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 100, // Extra padding for bottom navigation
-  },
-  profileCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    alignItems: 'center',
-  },
-  avatarContainer: {
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    borderRadius: borderRadius.full,
     borderWidth: 3,
-    borderColor: '#C5630C',
   },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#C5630C',
+  profilePicturePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: borderRadius.full,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.md,
   },
-  avatarText: {
+  profilePictureText: {
     color: 'white',
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.xxxl + 4,
+    fontWeight: typography.weights.bold,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 15,
-    marginBottom: 5,
+  greeting: {
+    fontSize: 26,
+    fontWeight: typography.weights.bold,
     textAlign: 'center',
+    marginBottom: 6,
   },
-  value: {
-    fontSize: 16,
+  email: {
+    fontSize: typography.sizes.sm + 1,
+    textAlign: 'center',
+    opacity: 0.6,
+  },
+  content: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: 40,
+  },
+  section: {
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: typography.sizes.xs + 1,
+    fontWeight: typography.weights.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
     marginBottom: 10,
-    textAlign: 'center',
+    marginLeft: 4,
+    opacity: 0.6,
   },
-  button: {
-    backgroundColor: '#C5630C',
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
+  card: {
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    ...shadows.md,
+  },
+  menuItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm + 4,
+  },
+  menuItemText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+  },
+  divider: {
+    height: 1,
+    marginLeft: 64,
   },
   logoutButton: {
     backgroundColor: 'transparent',
-    borderColor: '#C5630C',
     borderWidth: 2,
+    paddingVertical: 15,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: spacing.sm,
+  },
+  logoutIcon: {
+    marginRight: spacing.sm,
   },
   logoutButtonText: {
-    color: '#C5630C',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+  },
+  version: {
+    textAlign: 'center',
+    fontSize: typography.sizes.xs + 1,
+    marginTop: spacing.lg,
+    opacity: 0.4,
   },
 });

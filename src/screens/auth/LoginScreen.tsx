@@ -1,19 +1,23 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAppDispatch, useAppSelector, loginUser, clearError } from '../../store';
-import { LoginForm } from '../../components/screens/LoginScreen/LoginForm';
-import { LoginCredentials } from '../../types/auth';
-import { Colors } from '../../constants/theme';
-import { useColorScheme } from '../../hooks/use-color-scheme';
+import React, { useEffect } from 'react';
+import { Alert, Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { LoginForm } from '../../components/auth/login_form';
+import { spacing, typography } from '../../constants/theme';
+import { useLogin } from '../../hooks/auth';
+import { useTheme } from '../../hooks/use-theme';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { clearError } from '../../store/slices/auth_slice';
+import type { LoginCredentials } from '../../types/auth';
 
 export const LoginScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const colorScheme = useColorScheme();
+  const { theme } = useTheme();
+  const loginMutation = useLogin();
   
   // Get auth state from Redux
-  const { isLoading, error, isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { error, isAuthenticated, driver } = useAppSelector((state) => state.auth);
+  const isLoginLoading = loginMutation.isPending;
 
   // Clear error when component mounts
   useEffect(() => {
@@ -22,16 +26,16 @@ export const LoginScreen: React.FC = () => {
 
   // Navigate based on onboarding status when login is successful
   useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.isOnboardingComplete) {
-        // User has completed onboarding, go to main app
-        router.replace('/(main)');
+    if (isAuthenticated && driver) {
+      if (driver.isOnboarded) {
+        // Driver has completed onboarding, go to main app
+        router.replace('/(main)/(dashboard)');
       } else {
-        // User hasn't completed onboarding, go to password change first
+        // Driver hasn't completed onboarding, go to password change first
         router.replace('/(auth)/password-change');
       }
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, driver, router]);
 
   // Show error alert when login fails
   useEffect(() => {
@@ -46,8 +50,7 @@ export const LoginScreen: React.FC = () => {
 
   const handleLogin = async (credentials: LoginCredentials) => {
     try {
-      // Dispatch login action
-      await dispatch(loginUser(credentials)).unwrap();
+      await loginMutation.mutateAsync(credentials);
     } catch (error) {
       // Error is handled by useEffect above
       console.error('Login error:', error);
@@ -60,7 +63,8 @@ export const LoginScreen: React.FC = () => {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      <View style={styles.overlay} />
+      <View style={[styles.overlay, { backgroundColor: theme.background, opacity: 0.85 }]} />
+      
       <KeyboardAvoidingView 
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -78,12 +82,23 @@ export const LoginScreen: React.FC = () => {
                 style={styles.logo}
                 resizeMode="contain"
               />
-              <Text style={[styles.title, { color: Colors[colorScheme ?? 'light'].text }]}>
+              <Text style={[styles.title, { color: theme.text }]}>
                 Please sign in to continue
               </Text>
             </View>
             
-            <LoginForm onSubmit={handleLogin} loading={isLoading} />
+            <LoginForm onSubmit={handleLogin} loading={isLoginLoading} />
+            
+            <View style={styles.forgotPasswordContainer}>
+              <TouchableOpacity 
+                onPress={() => router.push('/(auth)/forgot-password')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>
+                  Forgot Password?
+                </Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
@@ -103,8 +118,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#F4F1DE', // Your custom background color
-    opacity: 0.8, // Adjust this value to control opacity (0.0 = transparent, 1.0 = opaque)
   },
   container: {
     flex: 1,
@@ -112,24 +125,30 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: spacing.lg,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
-    paddingHorizontal: 20,
+    marginBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
   logo: {
     width: 220,
     height: 220,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
+  forgotPasswordContainer: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  forgotPasswordText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
   },
 });
