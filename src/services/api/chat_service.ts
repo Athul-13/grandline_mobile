@@ -10,6 +10,7 @@ import type {
     TotalUnreadMessageCountResponse,
     UnreadMessageCountResponse,
 } from '../../types/chat';
+import { transformChatDates, transformMessageDates } from '../../utils/chat_utils';
 import { grandlineAxiosClient } from './axios_client';
 
 /**
@@ -22,7 +23,10 @@ export const chatService = {
    */
   async getChats(): Promise<ChatListResponse> {
     const response = await grandlineAxiosClient.get<ChatListResponse>(API_ENDPOINTS.CHAT.LIST);
-    return response.data;
+    return {
+      ...response.data,
+      chats: response.data.chats.map(transformChatDates),
+    };
   },
 
   /**
@@ -38,7 +42,9 @@ export const chatService = {
         },
       }
     );
-    return response.data;
+    return {
+      chat: response.data.chat ? transformChatDates(response.data.chat) : null,
+    };
   },
 
   /**
@@ -62,7 +68,10 @@ export const chatService = {
         },
       }
     );
-    return response.data;
+    return {
+      ...response.data,
+      messages: response.data.messages.map(transformMessageDates),
+    };
   },
 
   /**

@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTheme } from '../../hooks/use-theme';
+import { spacing, typography, borderRadius, shadows } from '../../constants/theme';
 import type { Chat } from '../../types/chat';
 
 interface ChatItemProps {
@@ -14,19 +16,31 @@ interface ChatItemProps {
 }
 
 export const ChatItem: React.FC<ChatItemProps> = ({ chat, onPress, unreadCount = 0 }) => {
+  const { theme } = useTheme();
+  
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity 
+      style={[
+        styles.container,
+        { 
+          backgroundColor: theme.card,
+          borderColor: theme.border,
+        }
+      ]} 
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.content}>
         <View style={styles.info}>
-          <Text style={styles.contextType} numberOfLines={1}>
+          <Text style={[styles.contextType, { color: theme.text }]} numberOfLines={1}>
             {chat.contextType} - {chat.contextId}
           </Text>
-          <Text style={styles.participantType} numberOfLines={1}>
+          <Text style={[styles.participantType, { color: theme.textSecondary }]} numberOfLines={1}>
             {chat.participantType}
           </Text>
         </View>
         {unreadCount > 0 && (
-          <View style={styles.badge}>
+          <View style={[styles.badge, { backgroundColor: theme.primary }]}>
             <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
           </View>
         )}
@@ -37,10 +51,13 @@ export const ChatItem: React.FC<ChatItemProps> = ({ chat, onPress, unreadCount =
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
+    marginHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    ...shadows.sm,
   },
   content: {
     flexDirection: 'row',
@@ -51,28 +68,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contextType: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    marginBottom: spacing.xs,
   },
   participantType: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: typography.sizes.sm,
   },
   badge: {
-    backgroundColor: '#007AFF',
-    borderRadius: 12,
+    borderRadius: borderRadius.full,
     minWidth: 24,
     height: 24,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
   badgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
+    color: 'white',
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
   },
 });
 

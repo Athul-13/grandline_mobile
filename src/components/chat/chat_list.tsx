@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { useTheme } from '../../hooks/use-theme';
+import { spacing } from '../../constants/theme';
 import { ChatItem } from './chat_item';
 import type { Chat } from '../../types/chat';
 
@@ -25,8 +27,10 @@ export const ChatList: React.FC<ChatListProps> = ({
   unreadCounts = {},
   bottomInset = 8,
 }) => {
+  const { theme } = useTheme();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
         data={chats}
         keyExtractor={(item) => item.chatId}
@@ -39,7 +43,12 @@ export const ChatList: React.FC<ChatListProps> = ({
         )}
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh}
+              tintColor={theme.primary}
+              colors={[theme.primary]}
+            />
           ) : undefined
         }
         contentContainerStyle={[
@@ -56,7 +65,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    paddingVertical: 8,
+    paddingTop: spacing.sm,
   },
 });
 

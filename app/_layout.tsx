@@ -4,6 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
@@ -104,15 +105,17 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <Provider store={store}>
-        <QueryClientProvider client={queryClient}>
-          <NotificationProvider>
-            <ChatProvider>
-              <AppContent />
-            </ChatProvider>
-          </NotificationProvider>
-        </QueryClientProvider>
-      </Provider>
+      <KeyboardProvider>
+        <Provider store={store}>
+          <QueryClientProvider client={queryClient}>
+            <NotificationProvider>
+              <ChatProvider>
+                <AppContent />
+              </ChatProvider>
+            </NotificationProvider>
+          </QueryClientProvider>
+        </Provider>
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 }

@@ -10,6 +10,7 @@ import type { RootState } from '../store/store';
 import type { Chat, Message } from '../types/chat';
 import { MessageDeliveryStatus } from '../types/chat';
 import { QueueItemType } from '../types/queue';
+import { transformMessageDates } from '../utils/chat_utils';
 
 /**
  * Chat context state
@@ -17,7 +18,7 @@ import { QueueItemType } from '../types/queue';
 interface ChatContextState {
   chats: Chat[];
   activeChatId: string | null;
-  messages: Record<string, Message[]>; // chatId -> messages
+  messages: Record<string, (Message & { status?: 'sending' | 'failed' })[]>; // chatId -> messages
   typingUsers: Record<string, string[]>; // chatId -> userIds who are typing
   unreadCounts: Record<string, number>; // chatId -> unread count
   totalUnreadCount: number;
@@ -30,6 +31,7 @@ interface ChatContextState {
   markAsRead: (chatId: string) => Promise<void>;
   joinChat: (chatId: string) => Promise<void>;
   leaveChat: (chatId: string) => Promise<void>;
+  retryFailedMessage: (chatId: string, messageId: string) => Promise<void>;
 }
 
 /**
@@ -54,7 +56,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const { isConnected: isNetworkConnected } = useNetworkStatus();
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [messages, setMessages] = useState<Record<string, (Message & { status?: 'sending' | 'failed' })[]>>({});
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({});
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [totalUnreadCount, setTotalUnreadCount] = useState<number>(0);
@@ -147,6 +149,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     // Listen for new messages
     const cleanupMessageSent = chatSocketService.onMessageSent((message) => {
       console.log('[ChatContext] New message received:', message);
+      
+      // Transform dates
+      const transformedMessage = transformMessageDates(message);
+      
       setMessages((prev) => {
         const chatMessages = prev[message.chatId] || [];
         // Check if message already exists
@@ -155,18 +161,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
         return {
           ...prev,
-          [message.chatId]: [...chatMessages, message],
+          [message.chatId]: [...chatMessages, transformedMessage],
         };
       });
 
       // Save to storage
-      chatStorage.saveMessage(message.chatId, message).catch(console.error);
+      chatStorage.saveMessage(message.chatId, transformedMessage).catch(console.error);
 
       // Update chat's updatedAt
       setChats((prev) =>
         prev.map((chat) =>
           chat.chatId === message.chatId
-            ? { ...chat, updatedAt: message.createdAt }
+            ? { ...chat, updatedAt: transformedMessage.createdAt }
             : chat
         )
       );
@@ -308,14 +314,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
 
       try {
-        // Optimistically add message to UI
-        const tempMessage: Message = {
+        // Optimistically add message to UI with 'sending' status
+        const tempMessage: Message & { status?: 'sending' | 'failed' } = {
           messageId: `temp-${Date.now()}`,
           chatId,
           senderId: currentUserId,
           content: content.trim(),
           deliveryStatus: MessageDeliveryStatus.SENT,
           createdAt: new Date(),
+          status: 'sending',
         };
 
         setMessages((prev) => ({
@@ -331,7 +338,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             chatId,
             content: content.trim(),
           });
-          // Keep temp message in UI with pending status
+          
+          // Update status to remove 'sending'
+          setMessages((prev) => ({
+            ...prev,
+            [chatId]: prev[chatId].map(m => 
+              m.messageId === tempMessage.messageId 
+                ? { ...m, status: undefined }
+                : m
+            ),
+          }));
           return;
         }
 
@@ -339,14 +355,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         chatSocketService.sendMessage(
           { chatId, content: content.trim() },
           (message) => {
-            // Replace temp message with real message
+            // Replace temp message with real message from server
             setMessages((prev) => {
               const chatMessages = prev[chatId] || [];
               return {
                 ...prev,
                 [chatId]: chatMessages
                   .filter((m) => m.messageId !== tempMessage.messageId)
-                  .concat(message),
+                  .concat(transformMessageDates(message)),
               };
             });
 
@@ -355,13 +371,25 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           },
           async (error) => {
             console.error('[ChatContext] Error sending message:', error);
-            // Queue message if send failed
-            await offlineQueueService.enqueue({
-              type: QueueItemType.SEND_MESSAGE,
-              chatId,
-              content: content.trim(),
-            });
-            // Keep temp message in UI
+            
+            // Mark message as failed
+            setMessages((prev) => ({
+              ...prev,
+              [chatId]: prev[chatId].map(m => 
+                m.messageId === tempMessage.messageId 
+                  ? { ...m, status: 'failed' }
+                  : m
+              ),
+            }));
+            
+            // Queue for retry if appropriate
+            if (error.retryable !== false) {
+              await offlineQueueService.enqueue({
+                type: QueueItemType.SEND_MESSAGE,
+                chatId,
+                content: content.trim(),
+              });
+            }
           }
         );
       } catch (err) {
@@ -494,6 +522,26 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     },
     [activeChatId, joinChat, leaveChat]
   );
+  
+  /**
+   * Retry failed message
+   */
+  const retryFailedMessage = useCallback(
+    async (chatId: string, messageId: string) => {
+      const message = messages[chatId]?.find(m => m.messageId === messageId);
+      if (!message) return;
+      
+      // Remove the failed message
+      setMessages(prev => ({
+        ...prev,
+        [chatId]: prev[chatId].filter(m => m.messageId !== messageId),
+      }));
+      
+      // Resend
+      await sendMessage(chatId, message.content);
+    },
+    [messages, sendMessage]
+  );
 
   const value: ChatContextState = {
     chats,
@@ -511,6 +559,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     markAsRead,
     joinChat,
     leaveChat,
+    retryFailedMessage,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

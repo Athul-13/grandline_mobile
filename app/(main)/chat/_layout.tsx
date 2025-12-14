@@ -13,7 +13,7 @@ export default function ChatLayout() {
       <Stack.Screen
         name="chat-detail"
         options={{
-          headerShown: true,
+          headerShown: false,
           title: 'Chat',
         }}
       />

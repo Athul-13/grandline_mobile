@@ -4,25 +4,25 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../hooks/use-theme';
+import { borderRadius, spacing, typography, shadows } from '../../constants/theme';
+import { formatMessageTime } from '../../utils/chat_utils';
+import { MessageSendStatus } from './message_send_status';
 import type { Message } from '../../types/chat';
 
 interface MessageItemProps {
-  message: Message;
+  message: Message & { status?: 'sending' | 'failed' };
   isOwnMessage: boolean;
+  onRetry?: (messageId: string) => void;
 }
 
-export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage }) => {
-  const getDeliveryStatusIcon = () => {
-    switch (message.deliveryStatus) {
-      case 'sent':
-        return '✓';
-      case 'delivered':
-        return '✓✓';
-      case 'read':
-        return '✓✓';
-      default:
-        return '';
+export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage, onRetry }) => {
+  const { theme } = useTheme();
+  
+  const handleRetry = () => {
+    if (onRetry && message.status === 'failed') {
+      onRetry(message.messageId);
     }
   };
 
@@ -36,39 +36,37 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
       <View
         style={[
           styles.bubble,
-          isOwnMessage ? styles.ownBubble : styles.otherBubble,
+          isOwnMessage 
+            ? [styles.ownBubble, { backgroundColor: theme.primary }] 
+            : [styles.otherBubble, { backgroundColor: theme.card, borderColor: theme.border }],
+          message.status === 'failed' && { borderColor: theme.error, borderWidth: 1 },
         ]}
       >
         <Text
           style={[
             styles.content,
-            isOwnMessage ? styles.ownContent : styles.otherContent,
+            isOwnMessage 
+              ? { color: 'white' } 
+              : { color: theme.text },
           ]}
         >
           {message.content}
         </Text>
         <View style={styles.footer}>
-          <Text style={styles.timestamp}>
-            {new Date(message.createdAt).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+          <Text style={[styles.timestamp, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : theme.textSecondary }]}>
+            {formatMessageTime(message.createdAt)}
           </Text>
-          {isOwnMessage && (
-            <Text
-              style={[
-                styles.status,
-                message.deliveryStatus === 'read'
-                  ? styles.statusRead
-                  : message.deliveryStatus === 'delivered'
-                  ? styles.statusDelivered
-                  : styles.statusSent,
-              ]}
-            >
-              {getDeliveryStatusIcon()}
-            </Text>
-          )}
+          <MessageSendStatus 
+            status={message.status || message.deliveryStatus}
+            isOwnMessage={isOwnMessage}
+          />
         </View>
+        
+        {message.status === 'failed' && isOwnMessage && (
+          <TouchableOpacity onPress={handleRetry} style={styles.retryButton}>
+            <Text style={[styles.retryText, { color: theme.error }]}>Tap to retry</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -76,8 +74,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage 
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
   },
   ownMessage: {
     alignItems: 'flex-end',
@@ -87,50 +85,41 @@ const styles = StyleSheet.create({
   },
   bubble: {
     maxWidth: '75%',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: spacing.sm + 4,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    ...shadows.sm,
   },
   ownBubble: {
-    backgroundColor: '#007AFF',
-    borderBottomRightRadius: 4,
+    borderBottomRightRadius: borderRadius.xs,
   },
   otherBubble: {
-    backgroundColor: '#E5E5EA',
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: borderRadius.xs,
+    borderWidth: 1,
   },
   content: {
-    fontSize: 16,
+    fontSize: typography.sizes.md,
     lineHeight: 20,
-  },
-  ownContent: {
-    color: '#fff',
-  },
-  otherContent: {
-    color: '#000',
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   timestamp: {
-    fontSize: 11,
-    color: '#666',
-    marginRight: 4,
+    fontSize: typography.sizes.xs,
+    marginRight: spacing.xs,
   },
-  status: {
-    fontSize: 12,
+  retryButton: {
+    marginTop: spacing.xs,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.2)',
   },
-  statusSent: {
-    color: '#999',
-  },
-  statusDelivered: {
-    color: '#999',
-  },
-  statusRead: {
-    color: '#007AFF',
+  retryText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
   },
 });
 
