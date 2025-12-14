@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationList } from '../../components/notifications/notification_list';
 import { spacing, typography } from '../../constants/theme';
 import { useNotifications } from '../../contexts/notification_context';
@@ -11,6 +12,7 @@ import type { Notification } from '../../types/notifications';
 export const NotificationsScreen: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const {
     notifications,
     unreadCount,
@@ -82,6 +84,7 @@ export const NotificationsScreen: React.FC = () => {
         onRefresh={refreshNotifications}
         refreshing={isLoading}
         onNotificationPress={handleNotificationPress}
+        bottomInset={insets.bottom + 100}
       />
 
       {notifications.length === 0 && !isLoading && (

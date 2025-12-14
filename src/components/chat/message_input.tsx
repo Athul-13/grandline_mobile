@@ -11,12 +11,14 @@ interface MessageInputProps {
   chatId: string;
   onSend: (content: string) => void;
   disabled?: boolean;
+  bottomInset?: number;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   chatId,
   onSend,
   disabled = false,
+  bottomInset = 0,
 }) => {
   const [message, setMessage] = useState('');
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -66,7 +68,10 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[
+      styles.container,
+      { paddingBottom: Math.max(8, bottomInset) }
+    ]}>
       <TextInput
         style={styles.input}
         value={message}

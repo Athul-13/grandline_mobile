@@ -79,7 +79,9 @@ export const getSocketClient = (): Socket | null => {
 
   // Set up connection event listeners
   socketInstance.on('connect', () => {
-    console.log('[SocketClient] Socket connected:', socketInstance?.id);
+    if (__DEV__) {
+      console.log('[SocketClient] Connected:', socketInstance?.id);
+    }
   });
 
   socketInstance.on('disconnect', (reason: string) => {
@@ -92,10 +94,6 @@ export const getSocketClient = (): Socket | null => {
 
   socketInstance.on('reconnect', (attemptNumber: number) => {
     console.log('[SocketClient] Socket reconnected after', attemptNumber, 'attempts');
-  });
-
-  socketInstance.on('reconnect_attempt', (attemptNumber: number) => {
-    console.log('[SocketClient] Reconnection attempt:', attemptNumber);
   });
 
   socketInstance.on('reconnect_error', (error: Error) => {

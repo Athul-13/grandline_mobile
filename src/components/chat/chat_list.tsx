@@ -14,6 +14,7 @@ interface ChatListProps {
   onRefresh?: () => void;
   refreshing?: boolean;
   unreadCounts?: Record<string, number>;
+  bottomInset?: number;
 }
 
 export const ChatList: React.FC<ChatListProps> = ({
@@ -22,6 +23,7 @@ export const ChatList: React.FC<ChatListProps> = ({
   onRefresh,
   refreshing = false,
   unreadCounts = {},
+  bottomInset = 8,
 }) => {
   return (
     <View style={styles.container}>
@@ -40,7 +42,10 @@ export const ChatList: React.FC<ChatListProps> = ({
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           ) : undefined
         }
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingBottom: bottomInset }
+        ]}
       />
     </View>
   );

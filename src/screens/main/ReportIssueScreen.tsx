@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Text, ScrollView, TouchableOpacity, TextInput, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/use-theme';
 import { spacing, borderRadius, typography, shadows } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 export const ReportIssueScreen: React.FC = () => {
   const router = useRouter();
   const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   
   const [formData, setFormData] = useState({
     subject: '',
@@ -52,6 +54,7 @@ export const ReportIssueScreen: React.FC = () => {
     <KeyboardAvoidingView 
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
     >
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         <View style={styles.header}>
@@ -69,6 +72,7 @@ export const ReportIssueScreen: React.FC = () => {
         
         <ScrollView 
           style={styles.scrollContent}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
@@ -229,7 +233,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.md,
-    paddingBottom: 100,
   },
   infoBanner: {
     flexDirection: 'row',

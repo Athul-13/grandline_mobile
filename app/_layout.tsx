@@ -1,10 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import { OfflineIndicator } from '../src/components/common/offline_indicator';
 import { queryClient } from '../src/config/query_client';
@@ -12,12 +13,11 @@ import { ChatProvider } from '../src/contexts/chat_context';
 import { NotificationProvider } from '../src/contexts/notification_context';
 import { useAuthRestoration } from '../src/hooks/auth';
 import { useOfflineQueueSync } from '../src/hooks/network/use_offline_queue_sync';
-import { store } from '../src/store';
 import { usePushNotifications } from '../src/hooks/push/use_push_notifications';
+import { store } from '../src/store';
 
 function NavigationHandler() {
   const router = useRouter();
-  const segments = useSegments();
 
   useEffect(() => {
     // Handle deep links when app is already open
@@ -66,16 +66,6 @@ function AppContent() {
   // Initialize push notifications
   usePushNotifications();
 
-  // Show loading screen during auth restoration
-  if (isRestoring) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#C5630C" />
-        <StatusBar style="dark" backgroundColor="#F4F1DE" />
-      </View>
-    );
-  }
-
   return (
     <>
       <NavigationHandler />
@@ -97,6 +87,14 @@ function AppContent() {
             }} 
           />
         </Stack>
+        
+        {/* Show loading overlay while restoring auth */}
+        {isRestoring && (
+          <View style={[StyleSheet.absoluteFill, styles.loadingContainer]}>
+            <ActivityIndicator size="large" color="#C5630C" />
+          </View>
+        )}
+        
         <StatusBar style="dark" backgroundColor="#F4F1DE" />
       </View>
     </>
@@ -105,15 +103,17 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <NotificationProvider>
-          <ChatProvider>
-            <AppContent />
-          </ChatProvider>
-        </NotificationProvider>
-      </QueryClientProvider>
-    </Provider>
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <NotificationProvider>
+            <ChatProvider>
+              <AppContent />
+            </ChatProvider>
+          </NotificationProvider>
+        </QueryClientProvider>
+      </Provider>
+    </SafeAreaProvider>
   );
 }
 

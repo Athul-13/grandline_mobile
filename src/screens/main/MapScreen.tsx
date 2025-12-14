@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import MapView, { Marker, Region } from 'react-native-maps';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, shadows, spacing } from '../../constants/theme';
 import { useTheme } from '../../hooks/use-theme';
 
@@ -16,6 +17,7 @@ interface MapRegion {
 export const MapScreen: React.FC = () => {
   const { theme } = useTheme();
   const mapRef = useRef<MapView>(null);
+  const insets = useSafeAreaInsets();
   const [region, setRegion] = useState<MapRegion>({
     latitude: 9.9312, // Kochi fallback
     longitude: 76.2673,
@@ -68,7 +70,7 @@ export const MapScreen: React.FC = () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingBottom: insets.bottom + 100 }]}>
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFillObject}
@@ -93,6 +95,7 @@ export const MapScreen: React.FC = () => {
           styles.recenterButton, 
           { 
             backgroundColor: theme.primary,
+            bottom: insets.bottom + 140,
             ...shadows.lg,
           }
         ]} 
@@ -107,7 +110,6 @@ export const MapScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
-    paddingBottom: 100, // Space for floating tab bar
   },
   loadingContainer: {
     flex: 1,
@@ -116,7 +118,6 @@ const styles = StyleSheet.create({
   },
   recenterButton: {
     position: 'absolute',
-    bottom: 140,
     right: spacing.lg,
     borderRadius: borderRadius.full,
     padding: spacing.md,

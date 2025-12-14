@@ -197,6 +197,13 @@ export const shadows = {
   },
 };
 
+// Tab bar dimensions
+export const tabBar = {
+  height: 70,
+  bottomOffset: 30,  // Space below safe area
+  getTotalHeight: (bottomInset: number) => 70 + 30 + bottomInset,
+};
+
 // Type definitions for TypeScript
 export type Theme = typeof theme.light;
 export type ThemeMode = 'light' | 'dark';

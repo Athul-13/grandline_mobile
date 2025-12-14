@@ -5,6 +5,7 @@
 
 import React, { useEffect } from 'react';
 import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatList } from '../../components/chat/chat_list';
 import { useChat } from '../../contexts/chat_context';
 import { useRouter } from 'expo-router';
@@ -13,6 +14,7 @@ import type { Chat } from '../../types/chat';
 export const ChatListScreen: React.FC = () => {
   const router = useRouter();
   const { chats, isLoading, error, refreshChats, unreadCounts } = useChat();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     refreshChats();
@@ -49,6 +51,7 @@ export const ChatListScreen: React.FC = () => {
         onRefresh={refreshChats}
         refreshing={isLoading}
         unreadCounts={unreadCounts}
+        bottomInset={insets.bottom + 100}
       />
     </View>
   );

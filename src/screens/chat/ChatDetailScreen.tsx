@@ -3,19 +3,21 @@
  * Displays a chat conversation with messages
  */
 
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text, KeyboardAvoidingView, Platform } from 'react-native';
-import { MessageList } from '../../components/chat/message_list';
-import { MessageInput } from '../../components/chat/message_input';
-import { useChat } from '../../contexts/chat_context';
 import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSelector } from 'react-redux';
+import { MessageInput } from '../../components/chat/message_input';
+import { MessageList } from '../../components/chat/message_list';
+import { useChat } from '../../contexts/chat_context';
 import type { RootState } from '../../store/store';
 
 export const ChatDetailScreen: React.FC = () => {
   const params = useLocalSearchParams<{ chatId: string }>();
   const chatId = params.chatId || '';
   const { driver } = useSelector((state: RootState) => state.auth);
+  const insets = useSafeAreaInsets();
   const {
     chats,
     messages,
@@ -94,7 +96,7 @@ export const ChatDetailScreen: React.FC = () => {
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 + insets.top : 0}
     >
       <MessageList
         messages={chatMessages}
@@ -103,7 +105,12 @@ export const ChatDetailScreen: React.FC = () => {
         refreshing={isLoading}
         typingUsers={chatTypingUsers}
       />
-      <MessageInput chatId={chatId} onSend={handleSend} disabled={isSending} />
+      <MessageInput 
+        chatId={chatId} 
+        onSend={handleSend} 
+        disabled={isSending}
+        bottomInset={insets.bottom}
+      />
     </KeyboardAvoidingView>
   );
 };

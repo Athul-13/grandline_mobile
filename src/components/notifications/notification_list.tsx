@@ -12,6 +12,7 @@ interface NotificationListProps {
   onRefresh?: () => Promise<void>;
   refreshing?: boolean;
   onNotificationPress?: (notification: Notification) => void;
+  bottomInset?: number;
 }
 
 /**
@@ -23,6 +24,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
   onRefresh,
   refreshing = false,
   onNotificationPress,
+  bottomInset = 16,
 }) => {
   const { theme } = useTheme();
 
@@ -38,7 +40,7 @@ export const NotificationList: React.FC<NotificationListProps> = ({
       data={notifications}
       renderItem={renderItem}
       keyExtractor={(item) => item.notificationId}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={[styles.listContent, { paddingBottom: bottomInset }]}
       refreshControl={
         onRefresh ? (
           <RefreshControl

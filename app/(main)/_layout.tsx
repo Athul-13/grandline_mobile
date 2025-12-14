@@ -3,10 +3,11 @@ import { Tabs, usePathname, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { ProtectedRoute } from '../../src/components/routes/protected_route';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationBadge } from '../../src/components/notifications/notification_badge';
-import { useNotifications } from '../../src/contexts/notification_context';
+import { ProtectedRoute } from '../../src/components/routes/protected_route';
 import { useChat } from '../../src/contexts/chat_context';
+import { useNotifications } from '../../src/contexts/notification_context';
 
 // Define the colors for easier maintenance
 const PRIMARY_COLOR = '#C5630C'; // Active tab background color
@@ -77,11 +78,13 @@ function CustomTabBar() {
   const [activeTab, setActiveTab] = React.useState('dashboard');
   const { unreadCount } = useNotifications();
   const { totalUnreadCount } = useChat();
+  const insets = useSafeAreaInsets();
   
   // Debug: Track pathname changes
   React.useEffect(() => {
-    console.log('🔄 Pathname changed to:', pathname);
-    
+    if (__DEV__ ) {
+      console.log('Pathname changed to:', pathname);
+    }    
     // Update active tab based on pathname
     if (pathname === '/(main)/(dashboard)' || pathname === '/(main)/(dashboard)/') {
       setActiveTab('dashboard');
@@ -102,18 +105,23 @@ function CustomTabBar() {
   ];
 
   const handleTabPress = (route: string) => {
+    if (__DEV__ ) {
+      console.log('Tab pressed:', route);
+    }
     router.replace(route as any);
   };
 
   const isActive = (tabKey: string) => {
-    console.log('🔍 Checking tab key:', tabKey, 'against activeTab:', activeTab);
-    const isActiveResult = activeTab === tabKey;
-    console.log('✅ Is active:', isActiveResult);
-    return isActiveResult;
+    return activeTab === tabKey;
   };
 
   return (
-    <View style={styles.tabBar}>
+    <View style={[
+      styles.tabBar,
+      { 
+        bottom: insets.bottom + 30,
+      }
+    ]}>
       {tabs.map((tab) => (
         <TouchableOpacity
           key={tab.key}
@@ -156,7 +164,6 @@ function CustomTabBar() {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    bottom: 30,
     left: 20,
     right: 20,
     flexDirection: 'row',
