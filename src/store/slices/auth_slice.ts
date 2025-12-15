@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { authService } from '../../services/api/auth_service';
+import { authStorage } from '../../services/storage/auth_storage';
 import type { AuthResponse, AuthState, Driver } from '../../types/auth';
 
 // Initial state
@@ -9,6 +10,7 @@ const initialState: AuthState = {
   refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
+  isRestoring: false,
   error: null,
 };
 
@@ -19,8 +21,9 @@ export const refreshUserToken = createAsyncThunk(
     try {
       const response: AuthResponse = await authService.refreshToken();
       return response;
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Token refresh failed');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -45,6 +48,41 @@ const authSlice = createSlice({
       state.refreshToken = action.payload.refreshToken;
       state.isAuthenticated = true;
       state.error = null;
+      
+      // Save to secure storage
+      authStorage.saveAuthData({
+        accessToken: action.payload.accessToken,
+        refreshToken: action.payload.refreshToken,
+        driver: action.payload.driver,
+      }).catch((error) => {
+        console.error('[AuthSlice] Error saving auth data to storage:', error);
+      });
+    },
+
+    // Restore authentication state from storage (called on app startup)
+    restoreAuthState: (
+      state,
+      action: PayloadAction<{
+        driver: Driver | null;
+        accessToken: string | null;
+        refreshToken: string | null;
+      }>
+    ) => {
+      state.driver = action.payload.driver;
+      state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
+      state.isAuthenticated = !!(
+        action.payload.accessToken &&
+        action.payload.refreshToken &&
+        action.payload.driver
+      );
+      state.isRestoring = false;
+      state.error = null;
+    },
+
+    // Set restoring state
+    setRestoring: (state, action: PayloadAction<boolean>) => {
+      state.isRestoring = action.payload;
     },
 
     // Clear authentication state (called on logout)
@@ -54,6 +92,11 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.error = null;
+      
+      // Clear from secure storage
+      authStorage.clearAuthData().catch((error) => {
+        console.error('[AuthSlice] Error clearing auth data from storage:', error);
+      });
     },
 
     // Update driver profile (sync with React Query cache)
@@ -73,6 +116,14 @@ const authSlice = createSlice({
     ) => {
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
+      
+      // Update in secure storage
+      authStorage.updateTokens({
+        accessToken: action.payload.accessToken,
+        refreshToken: action.payload.refreshToken,
+      }).catch((error) => {
+        console.error('[AuthSlice] Error updating tokens in storage:', error);
+      });
     },
 
     // Clear error
@@ -92,6 +143,14 @@ const authSlice = createSlice({
         state.accessToken = action.payload.accessToken;
         state.refreshToken = action.payload.refreshToken;
         state.error = null;
+        
+        // Update tokens in secure storage
+        authStorage.updateTokens({
+          accessToken: action.payload.accessToken,
+          refreshToken: action.payload.refreshToken,
+        }).catch((error) => {
+          console.error('[AuthSlice] Error updating tokens in storage after refresh:', error);
+        });
       })
       .addCase(refreshUserToken.rejected, (state) => {
         // If refresh fails, clear auth state
@@ -106,6 +165,8 @@ const authSlice = createSlice({
 // Export actions
 export const {
   setAuthState,
+  restoreAuthState,
+  setRestoring,
   clearAuthState,
   updateDriverProfile,
   updateTokens,
@@ -122,5 +183,6 @@ export const selectDriver = (state: { auth: AuthState }) => state.auth.driver;
 export const selectIsAuthenticated = (state: { auth: AuthState }) =>
   state.auth.isAuthenticated;
 export const selectIsLoading = (state: { auth: AuthState }) => state.auth.isLoading;
+export const selectIsRestoring = (state: { auth: AuthState }) => state.auth.isRestoring;
 export const selectAuthError = (state: { auth: AuthState }) => state.auth.error;
 

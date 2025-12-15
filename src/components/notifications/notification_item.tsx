@@ -1,0 +1,146 @@
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, spacing, typography } from '../../constants/theme';
+import { useTheme } from '../../hooks/use-theme';
+import type { Notification } from '../../types/notifications';
+
+/**
+ * Notification Item Props
+ */
+interface NotificationItemProps {
+  notification: Notification;
+  onPress?: () => void;
+}
+
+/**
+ * Format date to relative time
+ */
+const formatRelativeTime = (date: Date | string | undefined): string => {
+  if (!date) {
+    return 'Unknown time';
+  }
+
+  const now = new Date();
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  
+  // Check if date is valid
+  if (!dateObj || isNaN(dateObj.getTime())) {
+    return 'Unknown time';
+  }
+  
+  const diff = now.getTime() - dateObj.getTime();
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) {
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  }
+  if (hours > 0) {
+    return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  }
+  if (minutes > 0) {
+    return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  }
+  return 'Just now';
+};
+
+/**
+ * Notification Item Component
+ * Displays a single notification
+ */
+export const NotificationItem: React.FC<NotificationItemProps> = ({
+  notification,
+  onPress,
+}) => {
+  const { theme } = useTheme();
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.card,
+          borderLeftColor: notification.isRead ? 'transparent' : theme.primary,
+        },
+        !notification.isRead && styles.unread,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={styles.content}>
+        <View style={styles.headerRight}>
+          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
+            {notification.title}
+          </Text>
+
+          <View style={styles.headerRight}>
+            <Text style={[styles.timeInline, { color: theme.textSecondary }]}>
+              {formatRelativeTime(notification.createdAt)}
+            </Text>
+
+            {!notification.isRead && (
+              <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
+            )}
+          </View>
+        </View>
+        <Text style={[styles.message, { color: theme.textSecondary }]} numberOfLines={3}>
+          {notification.message}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderLeftWidth: 4,
+  },
+  unread: {
+    opacity: 1,
+  },
+  content: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: spacing.xs,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  
+  timeInline: {
+    fontSize: typography.sizes.xs,
+  },
+  title: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    flex: 1,
+    marginRight: spacing.xs,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  message: {
+    fontSize: typography.sizes.sm,
+    lineHeight: 20,
+    marginBottom: spacing.xs,
+  },
+  time: {
+    fontSize: typography.sizes.xs,
+    marginTop: spacing.xs,
+  },
+});
+

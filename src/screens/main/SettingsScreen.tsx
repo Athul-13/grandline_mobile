@@ -1,30 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
 import { useLogout } from '../../hooks/auth';
-import { useDriverProfileQuery } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
+import { useAppSelector } from '../../store/hooks';
 
 export const SettingsScreen: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const logoutMutation = useLogout();
+  const insets = useSafeAreaInsets();
   
-  // Get driver data from React Query
-  const { data: driver, error } = useDriverProfileQuery();
-
-  // Show error alert if driver data fails to load
-  useEffect(() => {
-    if (error) {
-      Alert.alert(
-        'Error',
-        'Failed to load profile data. Please try again.',
-        [{ text: 'OK' }]
-      );
-    }
-  }, [error]);
+  // Get driver data from Redux
+  const driver = useAppSelector((state) => state.auth.driver);
 
   const handleLogout = () => {
     Alert.alert(
@@ -52,6 +43,7 @@ export const SettingsScreen: React.FC = () => {
   return (
     <ScrollView 
       style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Profile Section */}
@@ -205,7 +197,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.md,
-    paddingBottom: 40,
   },
   section: {
     marginBottom: spacing.lg,

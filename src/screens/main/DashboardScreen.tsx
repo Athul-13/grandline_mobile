@@ -2,18 +2,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, spacing, typography } from '../../constants/theme';
 import { useLogout } from '../../hooks/auth';
-import { useDriverProfileQuery } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
+import { useAppSelector } from '../../store/hooks';
 
 export const DashboardScreen: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
   const logoutMutation = useLogout();
+  const insets = useSafeAreaInsets();
   
-  // Get driver data from React Query
-  const { data: driver } = useDriverProfileQuery();
+  // Get driver data from Redux
+  const driver = useAppSelector((state) => state.auth.driver);
 
   const handleLogout = () => {
     Alert.alert(
@@ -47,7 +49,7 @@ export const DashboardScreen: React.FC = () => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingBottom: insets.bottom + 100 }]}>
       <View style={styles.header}>
         <Image 
           source={require('../../assets/images/mainpage-logo.png')} 
@@ -81,7 +83,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingBottom: 100, // Space for floating tab bar
   },
   header: {
     alignItems: 'center',

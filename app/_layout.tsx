@@ -1,17 +1,25 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import * as Linking from 'expo-linking';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
-import * as Linking from 'expo-linking';
+import { OfflineIndicator } from '../src/components/common/offline_indicator';
 import { queryClient } from '../src/config/query_client';
+import { ChatProvider } from '../src/contexts/chat_context';
+import { NotificationProvider } from '../src/contexts/notification_context';
+import { SocketProvider } from '../src/contexts/socket_context';
+import { useAuthRestoration } from '../src/hooks/auth';
+import { useOfflineQueueSync } from '../src/hooks/network/use_offline_queue_sync';
+import { usePushNotifications } from '../src/hooks/push/use_push_notifications';
 import { store } from '../src/store';
 
 function NavigationHandler() {
   const router = useRouter();
-  const segments = useSegments();
 
   useEffect(() => {
     // Handle deep links when app is already open
@@ -51,31 +59,75 @@ function NavigationHandler() {
   return null;
 }
 
-export default function RootLayout() {
+function AppContent() {
+  const { isRestoring } = useAuthRestoration();
+  
+  // Auto-sync offline queue when connection is restored
+  useOfflineQueueSync();
+  
+  // Initialize push notifications
+  usePushNotifications();
+
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <NavigationHandler />
-        <View style={{ flex: 1, backgroundColor: '#F4F1DE' }}>
-          <Stack>
-            <Stack.Screen 
-              name="(auth)" 
-              options={{ 
-                headerShown: false,
-                title: 'Authentication'
-              }} 
-            />
-            <Stack.Screen 
-              name="(main)" 
-              options={{ 
-                headerShown: false,
-                title: 'Main App'
-              }} 
-            />
-          </Stack>
-          <StatusBar style="dark" backgroundColor="#F4F1DE" />
-        </View>
-      </QueryClientProvider>
-    </Provider>
+    <>
+      <NavigationHandler />
+      <View style={{ flex: 1, backgroundColor: '#F4F1DE' }}>
+        <OfflineIndicator />
+        <Stack>
+          <Stack.Screen 
+            name="(auth)" 
+            options={{ 
+              headerShown: false,
+              title: 'Authentication'
+            }} 
+          />
+          <Stack.Screen 
+            name="(main)" 
+            options={{ 
+              headerShown: false,
+              title: 'Main App'
+            }} 
+          />
+        </Stack>
+        
+        {/* Show loading overlay while restoring auth */}
+        {isRestoring && (
+          <View style={[StyleSheet.absoluteFill, styles.loadingContainer]}>
+            <ActivityIndicator size="large" color="#C5630C" />
+          </View>
+        )}
+        
+        <StatusBar style="dark" backgroundColor="#F4F1DE" />
+      </View>
+    </>
   );
 }
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <KeyboardProvider>
+        <Provider store={store}>
+          <QueryClientProvider client={queryClient}>
+            <SocketProvider>
+              <NotificationProvider>
+                <ChatProvider>
+                  <AppContent />
+                </ChatProvider>
+              </NotificationProvider>
+            </SocketProvider>
+          </QueryClientProvider>
+        </Provider>
+      </KeyboardProvider>
+    </SafeAreaProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F4F1DE',
+  },
+});
