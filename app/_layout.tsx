@@ -12,6 +12,7 @@ import { OfflineIndicator } from '../src/components/common/offline_indicator';
 import { queryClient } from '../src/config/query_client';
 import { ChatProvider } from '../src/contexts/chat_context';
 import { NotificationProvider } from '../src/contexts/notification_context';
+import { SocketProvider } from '../src/contexts/socket_context';
 import { useAuthRestoration } from '../src/hooks/auth';
 import { useOfflineQueueSync } from '../src/hooks/network/use_offline_queue_sync';
 import { usePushNotifications } from '../src/hooks/push/use_push_notifications';
@@ -108,11 +109,13 @@ export default function RootLayout() {
       <KeyboardProvider>
         <Provider store={store}>
           <QueryClientProvider client={queryClient}>
-            <NotificationProvider>
-              <ChatProvider>
-                <AppContent />
-              </ChatProvider>
-            </NotificationProvider>
+            <SocketProvider>
+              <NotificationProvider>
+                <ChatProvider>
+                  <AppContent />
+                </ChatProvider>
+              </NotificationProvider>
+            </SocketProvider>
           </QueryClientProvider>
         </Provider>
       </KeyboardProvider>

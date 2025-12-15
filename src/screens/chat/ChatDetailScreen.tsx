@@ -12,7 +12,7 @@ import { ChatHeader } from '../../components/chat/chat_header';
 import { MessageInput } from '../../components/chat/message_input';
 import { MessageList } from '../../components/chat/message_list';
 import { useChat } from '../../contexts/chat_context';
-import { useSocketConnection } from '../../hooks/socket/use_socket_connection';
+import { useSocket } from '../../hooks/socket/use_socket';
 import { useTheme } from '../../hooks/use-theme';
 import type { RootState } from '../../store/store';
 
@@ -23,7 +23,7 @@ export const ChatDetailScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { theme } = useTheme();
-  const { isConnected } = useSocketConnection();
+  const { isConnected } = useSocket();
   const {
     chats,
     messages,

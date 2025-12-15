@@ -1,14 +1,13 @@
 import { API_ENDPOINTS } from '../../constants/api';
 import type {
-    Chat,
-    ChatListResponse,
-    CreateChatRequest,
-    GetChatByContextParams,
-    GetMessagesParams,
-    MarkMessageAsReadResponse,
-    MessageListResponse,
-    TotalUnreadMessageCountResponse,
-    UnreadMessageCountResponse,
+  Chat,
+  ChatListResponse,
+  CreateChatRequest,
+  GetChatByContextParams,
+  GetMessagesParams,
+  MessageListResponse,
+  TotalUnreadMessageCountResponse,
+  UnreadMessageCountResponse
 } from '../../types/chat';
 import { transformChatDates, transformMessageDates } from '../../utils/chat_utils';
 import { grandlineAxiosClient } from './axios_client';
@@ -90,17 +89,6 @@ export const chatService = {
   async getTotalUnreadCount(): Promise<TotalUnreadMessageCountResponse> {
     const response = await grandlineAxiosClient.get<TotalUnreadMessageCountResponse>(
       API_ENDPOINTS.MESSAGES.TOTAL_UNREAD_COUNT
-    );
-    return response.data;
-  },
-
-  /**
-   * Mark messages as read for a specific chat
-   */
-  async markMessagesAsRead(chatId: string): Promise<MarkMessageAsReadResponse> {
-    const response = await grandlineAxiosClient.post<MarkMessageAsReadResponse>(
-      API_ENDPOINTS.MESSAGES.MARK_AS_READ,
-      { chatId }
     );
     return response.data;
   },

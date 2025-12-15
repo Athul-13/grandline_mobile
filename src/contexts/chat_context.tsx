@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useNetworkStatus } from '../hooks/network/use_network_status';
-import { useSocketConnection } from '../hooks/socket/use_socket_connection';
+import { useSocket } from '../hooks/socket/use_socket';
 import { chatService } from '../services/api/chat_service';
 import { offlineQueueService } from '../services/queue/offline_queue';
 import { chatSocketService } from '../services/socket/chat_socket_service';
@@ -52,7 +52,7 @@ interface ChatProviderProps {
  */
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const { driver } = useSelector((state: RootState) => state.auth);
-  const { isConnected } = useSocketConnection();
+  const { isConnected } = useSocket();
   const { isConnected: isNetworkConnected } = useNetworkStatus();
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -382,14 +382,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
               ),
             }));
             
-            // Queue for retry if appropriate
-            if (error.retryable !== false) {
-              await offlineQueueService.enqueue({
-                type: QueueItemType.SEND_MESSAGE,
-                chatId,
-                content: content.trim(),
-              });
-            }
+            // Queue for retry
+            await offlineQueueService.enqueue({
+              type: QueueItemType.SEND_MESSAGE,
+              chatId,
+              content: content.trim(),
+            });
           }
         );
       } catch (err) {
@@ -438,9 +436,24 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         return;
       }
 
-      // Mark as read via API and socket when online
-      await chatService.markMessagesAsRead(chatId);
-      chatSocketService.markAsRead(chatId);
+      // Mark as read via socket when online (real-time)
+      // Note: Socket service handles NOT_CONNECTED gracefully
+      chatSocketService.markAsRead(
+        chatId,
+        undefined, // onRead callback
+        (error) => {
+          // If socket fails, queue it for later sync
+          if (error.code === 'NOT_CONNECTED') {
+            console.log('[ChatContext] Socket not connected - queueing mark as read');
+            offlineQueueService.enqueue({
+              type: QueueItemType.MARK_AS_READ,
+              chatId,
+            }).catch(console.error);
+          } else {
+            console.error('[ChatContext] Error marking messages as read via socket:', error);
+          }
+        }
+      );
 
       // Update storage
       setMessages((prev) => {
@@ -457,7 +470,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           chatId,
         });
       }
-      throw err;
     }
   }, [currentUserId, canSendMessages]);
 
@@ -476,7 +488,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           markAsRead(chatId).catch(console.error);
         },
         (error) => {
-          console.error('[ChatContext] Error joining chat:', error);
+          // Only log non-connection errors
+          if (error.code !== 'NOT_CONNECTED') {
+            console.error('[ChatContext] Error joining chat:', error);
+          } else {
+            console.log('[ChatContext] Cannot join chat - socket not connected');
+          }
         }
       );
     } catch (err) {
@@ -495,7 +512,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           console.log('[ChatContext] Left chat:', chatId);
         },
         (error) => {
-          console.error('[ChatContext] Error leaving chat:', error);
+          // Only log non-connection errors
+          // Leaving chat when socket is disconnected is expected and not an error
+          if (error.code !== 'NOT_CONNECTED') {
+            console.error('[ChatContext] Error leaving chat:', error);
+          }
+          // Silently ignore NOT_CONNECTED - socket cleanup happens at provider level
         }
       );
     } catch (err) {

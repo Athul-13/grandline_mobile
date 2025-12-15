@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-import { useSocketConnection } from '../hooks/socket/use_socket_connection';
+import { useSocket } from '../hooks/socket/use_socket';
 import { notificationService } from '../services/api/notification_service';
 import { pushNotificationService } from '../services/push/push_notification_service';
 import { notificationSocketService } from '../services/socket/notification_socket_service';
@@ -42,7 +42,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const { isConnected } = useSocketConnection();
+  const { isConnected } = useSocket();
   const socketListenersRef = useRef<(() => void)[]>([]);
 
   /**
