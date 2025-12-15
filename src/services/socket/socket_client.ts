@@ -15,6 +15,16 @@ import { store } from '../../store/store';
 let socketInstance: Socket | null = null;
 
 /**
+ * Event listener references for cleanup
+ */
+let connectListener: (() => void) | null = null;
+let disconnectListener: ((reason: string) => void) | null = null;
+let connectErrorListener: ((error: Error) => void) | null = null;
+let reconnectListener: ((attemptNumber: number) => void) | null = null;
+let reconnectErrorListener: ((error: Error) => void) | null = null;
+let reconnectFailedListener: (() => void) | null = null;
+
+/**
  * Connection state type
  */
 export type SocketConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
@@ -77,32 +87,38 @@ export const getSocketClient = (): Socket | null => {
     autoConnect: false, // We'll connect manually via hook
   });
 
-  // Set up connection event listeners
-  socketInstance.on('connect', () => {
+  // Set up connection event listeners and store references for cleanup
+  connectListener = () => {
     if (__DEV__) {
       console.log('[SocketClient] Connected:', socketInstance?.id);
     }
-  });
+  };
+  socketInstance.on('connect', connectListener);
 
-  socketInstance.on('disconnect', (reason: string) => {
+  disconnectListener = (reason: string) => {
     console.log('[SocketClient] Socket disconnected:', reason);
-  });
+  };
+  socketInstance.on('disconnect', disconnectListener);
 
-  socketInstance.on('connect_error', (error: Error) => {
+  connectErrorListener = (error: Error) => {
     console.error('[SocketClient] Socket connection error:', error.message);
-  });
+  };
+  socketInstance.on('connect_error', connectErrorListener);
 
-  socketInstance.on('reconnect', (attemptNumber: number) => {
+  reconnectListener = (attemptNumber: number) => {
     console.log('[SocketClient] Socket reconnected after', attemptNumber, 'attempts');
-  });
+  };
+  socketInstance.on('reconnect', reconnectListener);
 
-  socketInstance.on('reconnect_error', (error: Error) => {
+  reconnectErrorListener = (error: Error) => {
     console.error('[SocketClient] Socket reconnection error:', error.message);
-  });
+  };
+  socketInstance.on('reconnect_error', reconnectErrorListener);
 
-  socketInstance.on('reconnect_failed', () => {
+  reconnectFailedListener = () => {
     console.error('[SocketClient] Socket reconnection failed');
-  });
+  };
+  socketInstance.on('reconnect_failed', reconnectFailedListener);
 
   return socketInstance;
 };
@@ -118,7 +134,34 @@ export const getSocketClient = (): Socket | null => {
 export const disconnectSocket = (): void => {
   if (socketInstance) {
     console.log('[SocketClient] Disconnecting socket...');
-    // Remove all event listeners to prevent memory leaks
+    
+    // Remove event listeners explicitly to prevent memory leaks
+    if (connectListener) {
+      socketInstance.off('connect', connectListener);
+      connectListener = null;
+    }
+    if (disconnectListener) {
+      socketInstance.off('disconnect', disconnectListener);
+      disconnectListener = null;
+    }
+    if (connectErrorListener) {
+      socketInstance.off('connect_error', connectErrorListener);
+      connectErrorListener = null;
+    }
+    if (reconnectListener) {
+      socketInstance.off('reconnect', reconnectListener);
+      reconnectListener = null;
+    }
+    if (reconnectErrorListener) {
+      socketInstance.off('reconnect_error', reconnectErrorListener);
+      reconnectErrorListener = null;
+    }
+    if (reconnectFailedListener) {
+      socketInstance.off('reconnect_failed', reconnectFailedListener);
+      reconnectFailedListener = null;
+    }
+    
+    // Safety net: remove all remaining listeners
     socketInstance.removeAllListeners();
     socketInstance.disconnect();
     socketInstance = null;

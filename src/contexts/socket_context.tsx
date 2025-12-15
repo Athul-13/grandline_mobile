@@ -10,9 +10,9 @@ import { useSelector } from 'react-redux';
 import type { Socket } from 'socket.io-client';
 import { SOCKET_RECONNECTION_DELAY, SOCKET_STATE_UPDATE_INTERVAL } from '../constants/socket';
 import {
-    getSocketClient,
-    getSocketConnectionState,
-    type SocketConnectionState,
+  getSocketClient,
+  getSocketConnectionState,
+  type SocketConnectionState,
 } from '../services/socket/socket_client';
 import type { RootState } from '../store/store';
 import { store } from '../store/store';
@@ -89,24 +89,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       socketInstance.connect();
     }
 
-    // Set up state update listeners (only if not already set up)
-    socketInstance.off('connect');
-    socketInstance.on('connect', () => {
-      console.log('[SocketProvider] Socket connected');
-      updateConnectionState();
-    });
-
-    socketInstance.off('disconnect');
-    socketInstance.on('disconnect', () => {
-      console.log('[SocketProvider] Socket disconnected');
-      updateConnectionState();
-    });
-
-    socketInstance.off('connect_error');
-    socketInstance.on('connect_error', () => {
-      console.error('[SocketProvider] Socket connection error');
-      updateConnectionState();
-    });
+    // Update connection state immediately
+    // Note: Event listeners are handled by socket_client.ts for logging
+    // SocketProvider relies on periodic state updates (see useEffect below)
+    updateConnectionState();
 
     // Store current token
     previousTokenRef.current = token;

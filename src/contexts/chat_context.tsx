@@ -63,6 +63,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const socketListenersRef = useRef<(() => void)[]>([]);
+  const listenersSetupRef = useRef<boolean>(false);
+  const pendingMessageIdsRef = useRef<Set<string>>(new Set());
 
   const currentUserId = driver?.driverId || '';
   const canSendMessages = isConnected && isNetworkConnected;
@@ -118,9 +120,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
    * Set up socket listeners when connected and sync on startup
    */
   useEffect(() => {
-    if (!isConnected || !currentUserId) {
+    if (!isConnected || !currentUserId || listenersSetupRef.current) {
       return;
     }
+
+    // Mark listeners as set up
+    listenersSetupRef.current = true;
 
     // Sync with server on socket connection (startup or reconnection)
     const syncOnConnection = async () => {
@@ -149,6 +154,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     // Listen for new messages
     const cleanupMessageSent = chatSocketService.onMessageSent((message) => {
       console.log('[ChatContext] New message received:', message);
+      
+      // Skip messages sent by current user - those are handled by sendMessage callback
+      if (message.senderId === currentUserId) {
+        console.log('[ChatContext] Skipping own message - already handled by sendMessage');
+        return;
+      }
+      
+      // Skip messages that are pending (being sent by sendMessage callback)
+      if (pendingMessageIdsRef.current.has(message.messageId)) {
+        console.log('[ChatContext] Skipping pending message - already handled by sendMessage callback');
+        return;
+      }
       
       // Transform dates
       const transformedMessage = transformMessageDates(message);
@@ -282,6 +299,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     return () => {
       socketListenersRef.current.forEach((cleanup) => cleanup());
       socketListenersRef.current = [];
+      listenersSetupRef.current = false;
     };
   }, [isConnected, currentUserId, isNetworkConnected, refreshChats]);
 
@@ -351,10 +369,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           return;
         }
 
+        // Add temp message ID to pending set to prevent duplicate processing
+        pendingMessageIdsRef.current.add(tempMessage.messageId);
+
         // Send via socket when online
         chatSocketService.sendMessage(
           { chatId, content: content.trim() },
           (message) => {
+            // Remove from pending set
+            pendingMessageIdsRef.current.delete(tempMessage.messageId);
+            
+            // Also add real message ID to pending set temporarily to prevent race condition
+            pendingMessageIdsRef.current.add(message.messageId);
+            
             // Replace temp message with real message from server
             setMessages((prev) => {
               const chatMessages = prev[chatId] || [];
@@ -368,9 +395,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
             // Save to storage
             chatStorage.saveMessage(chatId, message).catch(console.error);
+            
+            // Remove real message ID from pending after a short delay
+            // This allows the sendMessage callback to process it, but prevents onMessageSent from duplicating
+            setTimeout(() => {
+              pendingMessageIdsRef.current.delete(message.messageId);
+            }, 100);
           },
           async (error) => {
             console.error('[ChatContext] Error sending message:', error);
+            
+            // Remove from pending set
+            pendingMessageIdsRef.current.delete(tempMessage.messageId);
             
             // Mark message as failed
             setMessages((prev) => ({

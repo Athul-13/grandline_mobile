@@ -5,6 +5,7 @@ import type {
   CreateChatRequest,
   GetChatByContextParams,
   GetMessagesParams,
+  MarkMessageAsReadResponse,
   MessageListResponse,
   TotalUnreadMessageCountResponse,
   UnreadMessageCountResponse
@@ -92,5 +93,16 @@ export const chatService = {
     );
     return response.data;
   },
+
+    /**
+   * Mark messages as read for a specific chat
+   */
+    async markMessagesAsRead(chatId: string): Promise<MarkMessageAsReadResponse> {
+      const response = await grandlineAxiosClient.post<MarkMessageAsReadResponse>(
+        API_ENDPOINTS.MESSAGES.MARK_AS_READ,
+        { chatId }
+      );
+      return response.data;
+    },
 };
 
