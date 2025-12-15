@@ -70,19 +70,23 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
       activeOpacity={0.7}
     >
       <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>
+        <View style={styles.headerRight}>
+          <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
             {notification.title}
           </Text>
-          {!notification.isRead && (
-            <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
-          )}
+
+          <View style={styles.headerRight}>
+            <Text style={[styles.timeInline, { color: theme.textSecondary }]}>
+              {formatRelativeTime(notification.createdAt)}
+            </Text>
+
+            {!notification.isRead && (
+              <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
+            )}
+          </View>
         </View>
         <Text style={[styles.message, { color: theme.textSecondary }]} numberOfLines={3}>
           {notification.message}
-        </Text>
-        <Text style={[styles.time, { color: theme.textSecondary }]}>
-          {formatRelativeTime(notification.createdAt)}
         </Text>
       </View>
     </TouchableOpacity>
@@ -107,6 +111,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: spacing.xs,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  
+  timeInline: {
+    fontSize: typography.sizes.xs,
   },
   title: {
     fontSize: typography.sizes.md,

@@ -4,12 +4,12 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
 import { useTheme } from '../../hooks/use-theme';
-import { borderRadius, spacing, typography, shadows } from '../../constants/theme';
+import type { Message } from '../../types/chat';
 import { formatMessageTime } from '../../utils/chat_utils';
 import { MessageSendStatus } from './message_send_status';
-import type { Message } from '../../types/chat';
 
 interface MessageItemProps {
   message: Message & { status?: 'sending' | 'failed' };
@@ -52,21 +52,28 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage,
         >
           {message.content}
         </Text>
-        <View style={styles.footer}>
-          <Text style={[styles.timestamp, { color: isOwnMessage ? 'rgba(255,255,255,0.8)' : theme.textSecondary }]}>
-            {formatMessageTime(message.createdAt)}
-          </Text>
-          <MessageSendStatus 
-            status={message.status || message.deliveryStatus}
-            isOwnMessage={isOwnMessage}
-          />
-        </View>
-        
         {message.status === 'failed' && isOwnMessage && (
           <TouchableOpacity onPress={handleRetry} style={styles.retryButton}>
             <Text style={[styles.retryText, { color: theme.error }]}>Tap to retry</Text>
           </TouchableOpacity>
         )}
+      </View>
+      <View
+        style={[
+          styles.metaRow,
+          isOwnMessage ? styles.metaRight : styles.metaLeft,
+        ]}
+      >
+        {isOwnMessage && (
+          <MessageSendStatus
+            status={message.status || message.deliveryStatus}
+            isOwnMessage={isOwnMessage}
+          />
+        )}
+        
+        <Text style={[styles.timestampOutside, { color: theme.textSecondary }]}>
+          {formatMessageTime(message.createdAt)}
+        </Text>
       </View>
     </View>
   );
@@ -91,23 +98,32 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   ownBubble: {
-    borderBottomRightRadius: borderRadius.xs,
+    borderBottomRightRadius: borderRadius.sm,
   },
   otherBubble: {
-    borderBottomLeftRadius: borderRadius.xs,
+    borderBottomLeftRadius: borderRadius.sm,
     borderWidth: 1,
   },
   content: {
     fontSize: typography.sizes.md,
     lineHeight: 20,
   },
-  footer: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginTop: spacing.xs,
+    marginTop: 2,
+    paddingHorizontal: spacing.xs,
   },
-  timestamp: {
+  
+  metaRight: {
+    justifyContent: 'flex-end',
+  },
+  
+  metaLeft: {
+    justifyContent: 'flex-start',
+  },
+  
+  timestampOutside: {
     fontSize: typography.sizes.xs,
     marginRight: spacing.xs,
   },

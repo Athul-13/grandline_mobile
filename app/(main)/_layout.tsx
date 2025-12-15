@@ -115,6 +115,13 @@ function CustomTabBar() {
     return activeTab === tabKey;
   };
 
+  // Hide tab bar when on chat detail screen
+  const isChatDetailScreen = pathname?.includes('/chat-detail');
+  
+  if (isChatDetailScreen) {
+    return null;
+  }
+
   return (
     <View style={[
       styles.tabBar,

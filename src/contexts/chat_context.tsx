@@ -309,13 +309,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const loadMessages = useCallback(async (chatId: string) => {
     try {
       const response = await chatService.getChatMessages({ chatId, page: 1, limit: 50 });
+      
+      // Sort messages chronologically (oldest first) for correct display order
+      // Server returns newest first, but FlatList needs oldest first
+      const sortedMessages = [...response.messages].sort((a, b) => 
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      
       setMessages((prev) => ({
         ...prev,
-        [chatId]: response.messages,
+        [chatId]: sortedMessages,
       }));
 
       // Save to storage
-      await chatStorage.saveMessages(chatId, response.messages);
+      await chatStorage.saveMessages(chatId, sortedMessages);
     } catch (err) {
       console.error('[ChatContext] Error loading messages:', err);
       throw err;
