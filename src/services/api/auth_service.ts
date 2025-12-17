@@ -1,4 +1,5 @@
-import { API_ENDPOINTS } from '../../constants/api';
+import axios from 'axios';
+import { API_CONFIG, API_ENDPOINTS } from '../../constants/api';
 import { authStorage } from '../../services/storage/auth_storage';
 import type {
   AuthResponse,
@@ -31,12 +32,22 @@ export const authService = {
       throw new Error('Refresh token not found');
     }
 
-    // Send refresh token in request body (for mobile clients)
-    const response = await grandlineAxiosClient.post(
-      API_ENDPOINTS.AUTH.REFRESH_TOKEN,
-      { refreshToken }
+    // IMPORTANT:
+    // Use a "bare" axios call (no interceptors) to avoid circular refresh behavior
+    // when the main client receives a 401 and triggers token refresh.
+    const response = await axios.post(
+      `${API_CONFIG.BASE_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
+      { refreshToken },
+      {
+        timeout: API_CONFIG.TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
     );
-    return unwrapAxiosResponse<AuthResponse>(response);
+
+    return response.data as AuthResponse;
   },
 
   forgotPassword: async (email: string): Promise<void> => {
