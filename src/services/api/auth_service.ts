@@ -47,7 +47,7 @@ export const authService = {
       }
     );
 
-    return response.data as AuthResponse;
+    return unwrapAxiosResponse<AuthResponse>(response);
   },
 
   forgotPassword: async (email: string): Promise<void> => {

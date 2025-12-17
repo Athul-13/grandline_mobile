@@ -67,7 +67,7 @@ export const usePushNotifications = () => {
         if (data && typeof data === 'object' && 'type' in data && 'chatId' in data) {
           if (data.type === 'chat_message' && typeof data.chatId === 'string') {
             router.push({
-              pathname: '/(main)/chat/chat-detail',
+              pathname: '/(main)/(settings)/chat-detail',
               params: { chatId: data.chatId },
             });
           } else if (data.type === 'notification') {
@@ -89,7 +89,7 @@ export const usePushNotifications = () => {
         if (data && typeof data === 'object' && 'type' in data && 'chatId' in data) {
           if (data.type === 'chat_message' && typeof data.chatId === 'string') {
             router.push({
-              pathname: '/(main)/chat/chat-detail',
+              pathname: '/(main)/(settings)/chat-detail',
               params: { chatId: data.chatId },
             });
           } else if (data.type === 'notification') {

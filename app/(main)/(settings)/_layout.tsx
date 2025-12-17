@@ -38,6 +38,20 @@ export default function SettingsLayout() {
           title: 'Change Password'
         }}
       />
+      <Stack.Screen
+        name="chats"
+        options={{
+          headerShown: false,
+          title: 'Chats',
+        }}
+      />
+      <Stack.Screen
+        name="chat-detail"
+        options={{
+          headerShown: false,
+          title: 'Chat',
+        }}
+      />
     </Stack>
   );
 }

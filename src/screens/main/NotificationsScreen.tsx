@@ -59,7 +59,7 @@ export const NotificationsScreen: React.FC = () => {
         <Text style={[styles.title, { color: theme.text }]}>
           Notifications
         </Text>
-        {unreadCount > 0 && (
+        {unreadCount > 0 ? (
           <TouchableOpacity
             style={styles.markAllButton}
             onPress={handleMarkAllAsRead}
@@ -68,6 +68,8 @@ export const NotificationsScreen: React.FC = () => {
               Mark All Read
             </Text>
           </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
         )}
       </View>
       
@@ -107,20 +109,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingTop: 60,
-    paddingBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md + 4,
+    paddingHorizontal: spacing.md,
   },
   backButton: {
-    marginRight: spacing.md,
-  },
-  backButtonText: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.bold,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
-    fontSize: typography.sizes.xxl,
+    fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
-    flex: 1,
   },
   markAllButton: {
     paddingVertical: spacing.xs,
