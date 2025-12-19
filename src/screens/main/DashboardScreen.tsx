@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,12 +19,20 @@ const INITIAL_UPCOMING_LIMIT = 3;
 const UPCOMING_INCREMENT = 3;
 
 export const DashboardScreen: React.FC = () => {
+  const router = useRouter();
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const dashboardQuery = useDriverDashboard({ pastLimit: 10 });
 
   // Client-side progressive rendering for Upcoming Trips
   const [upcomingVisibleCount, setUpcomingVisibleCount] = useState(INITIAL_UPCOMING_LIMIT);
+
+  const handleTripPress = (reservationId: string) => {
+    router.push({
+      pathname: '/(main)/(dashboard)/trip-detail',
+      params: { reservationId },
+    });
+  };
 
   const firstPage = dashboardQuery.data?.pages?.[0];
   const currentTrip = firstPage?.currentTrip ?? null;
@@ -75,7 +84,11 @@ export const DashboardScreen: React.FC = () => {
             {/* Current Trip Section */}
             <View style={styles.section}>
               {currentTrip ? (
-                <TripListItem trip={currentTrip} isCurrent />
+                <TripListItem
+                  trip={currentTrip}
+                  isCurrent
+                  onPress={() => handleTripPress(currentTrip.reservationId)}
+                />
               ) : (
                 <EmptyTripState
                   title="No active trip"
@@ -93,7 +106,11 @@ export const DashboardScreen: React.FC = () => {
               {allUpcomingTrips.length > 0 ? (
                 <>
                   {visibleUpcomingTrips.map((trip) => (
-                    <TripListItem key={trip.reservationId} trip={trip} />
+                    <TripListItem
+                      key={trip.reservationId}
+                      trip={trip}
+                      onPress={() => handleTripPress(trip.reservationId)}
+                    />
                   ))}
                   {hasMoreUpcoming && (
                     <TouchableOpacity
@@ -123,7 +140,11 @@ export const DashboardScreen: React.FC = () => {
               {pastTrips.length > 0 ? (
                 <>
                   {pastTrips.map((trip) => (
-                    <TripListItem key={trip.reservationId} trip={trip} />
+                    <TripListItem
+                      key={trip.reservationId}
+                      trip={trip}
+                      onPress={() => handleTripPress(trip.reservationId)}
+                    />
                   ))}
                   {/* Server-side pagination: show button when backend indicates more data */}
                   {dashboardQuery.hasNextPage && (

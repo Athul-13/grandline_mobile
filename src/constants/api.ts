@@ -45,6 +45,7 @@ export const API_ENDPOINTS = {
     PROFILE_PICTURE_UPLOAD_URL: '/driver/profile/upload-url',
     SAVE_FCM_TOKEN: '/driver/fcm-token',
     DASHBOARD: '/driver/dashboard',
+    RESERVATIONS: '/driver/reservations',
   },
   
   // App Features
