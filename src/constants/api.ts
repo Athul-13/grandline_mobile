@@ -44,6 +44,7 @@ export const API_ENDPOINTS = {
     GET_DRIVER_INFO: '/driver/info',
     PROFILE_PICTURE_UPLOAD_URL: '/driver/profile/upload-url',
     SAVE_FCM_TOKEN: '/driver/fcm-token',
+    DASHBOARD: '/driver/dashboard',
   },
   
   // App Features
