@@ -17,6 +17,13 @@ export default function DashboardLayout() {
           title: 'Trip Details'
         }}
       />
+      <Stack.Screen
+        name="trip-map"
+        options={{
+          headerShown: false,
+          title: 'Trip Route'
+        }}
+      />
     </Stack>
   );
 }

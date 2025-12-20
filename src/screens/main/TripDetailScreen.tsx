@@ -5,7 +5,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -55,11 +55,11 @@ const formatDateTime = (isoString: string): string => {
 };
 
 /**
- * Format distance (meters to km, rounded to 1 decimal)
+ * Format distance (already in km, rounded to 1 decimal)
  */
-const formatDistance = (meters?: number): string => {
-  if (!meters) return 'N/A';
-  return `${(meters / 1000).toFixed(1)} km`;
+const formatDistance = (kilometers?: number): string => {
+  if (!kilometers) return 'N/A';
+  return `${kilometers.toFixed(1)} km`;
 };
 
 /**
@@ -93,6 +93,27 @@ const truncateLocation = (locationName: string): string => {
     return firstPart.slice(0, 2).join(' ');
   }
   return locationName;
+};
+
+/**
+ * Get icon name for stop type
+ */
+const getStopTypeIcon = (stopType: 'pickup' | 'stop' | 'dropoff'): keyof typeof Ionicons.glyphMap => {
+  if (stopType === 'pickup') return 'location-outline';
+  if (stopType === 'dropoff') return 'flag-outline';
+  return 'ellipse-outline';
+};
+
+/**
+ * Format time for display (e.g., "05:00")
+ */
+const formatTimeOnly = (isoString: string): string => {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 };
 
 /**
@@ -141,6 +162,7 @@ export const TripDetailScreen: React.FC = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const reservationQuery = useDriverReservation(reservationId);
+  const [activeTab, setActiveTab] = useState<'outbound' | 'return'>('outbound');
 
   // Loading state
   if (reservationQuery.isLoading) {
@@ -189,6 +211,20 @@ export const TripDetailScreen: React.FC = () => {
   // Get distance and duration from routeData
   const distance = reservation.routeData?.outbound?.totalDistance;
   const duration = reservation.routeData?.outbound?.totalDuration;
+
+  // Group stops by tripType
+  const outboundStops = reservation.itinerary
+    .filter((stop) => stop.tripType === 'outbound')
+    .sort((a, b) => a.stopOrder - b.stopOrder);
+  const returnStops =
+    reservation.tripType === 'two_way'
+      ? reservation.itinerary
+          .filter((stop) => stop.tripType === 'return')
+          .sort((a, b) => a.stopOrder - b.stopOrder)
+      : [];
+
+  // Determine which stops to show based on active tab
+  const activeStops = activeTab === 'outbound' ? outboundStops : returnStops;
 
   return (
     <ScrollView
@@ -288,6 +324,25 @@ export const TripDetailScreen: React.FC = () => {
                 </View>
               </>
             )}
+
+            {/* View on Map Button */}
+            {reservation.routeData && (
+              <>
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                <TouchableOpacity
+                  style={styles.mapButton}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/(main)/(dashboard)/trip-map',
+                      params: { reservationId: reservation.reservationId },
+                    });
+                  }}
+                >
+                  <Ionicons name="map-outline" size={20} color={theme.primary} />
+                  <Text style={[styles.mapButtonText, { color: theme.primary }]}>View route on map</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -295,9 +350,109 @@ export const TripDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>ITINERARY</Text>
           <View style={[styles.card, { backgroundColor: theme.card }, shadows.md]}>
-            <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
-              Full itinerary will go here
-            </Text>
+            {reservation.itinerary.length === 0 ? (
+              <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
+                No itinerary stops available
+              </Text>
+            ) : (
+              <>
+                {/* Tabs */}
+                {reservation.tripType === 'two_way' && returnStops.length > 0 && (
+                  <View style={styles.tabContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.tab,
+                        activeTab === 'outbound' && [styles.tabActive, { backgroundColor: theme.primary }],
+                      ]}
+                      onPress={() => setActiveTab('outbound')}
+                    >
+                      <Text
+                        style={[
+                          styles.tabText,
+                          { color: activeTab === 'outbound' ? '#FFFFFF' : theme.textSecondary },
+                        ]}
+                      >
+                        Outbound
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.tab,
+                        activeTab === 'return' && [styles.tabActive, { backgroundColor: theme.primary }],
+                      ]}
+                      onPress={() => setActiveTab('return')}
+                    >
+                      <Text
+                        style={[
+                          styles.tabText,
+                          { color: activeTab === 'return' ? '#FFFFFF' : theme.textSecondary },
+                        ]}
+                      >
+                        Return
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Timeline */}
+                <View style={styles.timelineContainer}>
+                  {activeStops.map((stop, index) => {
+                    const isLast = index === activeStops.length - 1;
+                    return (
+                      <View key={stop.itineraryId} style={styles.timelineItem}>
+                        {/* Timeline connector line */}
+                        {!isLast && (
+                          <View style={[styles.timelineConnector, { backgroundColor: theme.divider }]} />
+                        )}
+
+                        {/* Time display (left side) */}
+                        <View style={styles.timelineTimeContainer}>
+                          {stop.departureTime ? (
+                            <>
+                              <Text style={[styles.timelineTimeLabel, { color: theme.textSecondary }]}>
+                                Arrival
+                              </Text>
+                              <Text style={[styles.timelineTime, { color: theme.primary }]}>
+                                {formatTimeOnly(stop.arrivalTime)}
+                              </Text>
+                              <Text style={[styles.timelineTimeLabel, { color: theme.textSecondary, marginTop: 4 }]}>
+                                Departure
+                              </Text>
+                              <Text style={[styles.timelineTime, { color: theme.primary }]}>
+                                {formatTimeOnly(stop.departureTime)}
+                              </Text>
+                            </>
+                          ) : (
+                            <>
+                              <Text style={[styles.timelineTimeLabel, { color: theme.textSecondary }]}>
+                                Arrival
+                              </Text>
+                              <Text style={[styles.timelineTime, { color: theme.primary }]}>
+                                {formatTimeOnly(stop.arrivalTime)}
+                              </Text>
+                            </>
+                          )}
+                        </View>
+
+                        {/* Icon (center) */}
+                        <View style={styles.timelineIconWrapper}>
+                          <View style={[styles.timelineIconContainer, { backgroundColor: theme.primaryLight }]}>
+                            <Ionicons name={getStopTypeIcon(stop.stopType)} size={20} color={theme.primary} />
+                          </View>
+                        </View>
+
+                        {/* Location (right side) */}
+                        <View style={styles.timelineContent}>
+                          <Text style={[styles.timelineLocation, { color: theme.text }]} numberOfLines={2}>
+                            {truncateLocation(stop.locationName)}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
           </View>
         </View>
 
@@ -305,9 +460,60 @@ export const TripDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>RIDER</Text>
           <View style={[styles.card, { backgroundColor: theme.card }, shadows.md]}>
-            <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
-              Rider information will go here
-            </Text>
+            {/* Rider Name - Always shown */}
+            <View style={styles.infoRow}>
+              <View style={styles.infoLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="person-outline" size={18} color={theme.primary} />
+                </View>
+                <View style={styles.infoTextContainer}>
+                  <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Name</Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>
+                    {reservation.rider.fullName}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Email - Only if privacy is FULL */}
+            {reservation.rider.privacy === 'FULL' && reservation.rider.email && (
+              <>
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                <View style={styles.infoRow}>
+                  <View style={styles.infoLeft}>
+                    <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                      <Ionicons name="mail-outline" size={18} color={theme.primary} />
+                    </View>
+                    <View style={styles.infoTextContainer}>
+                      <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Email</Text>
+                      <Text style={[styles.infoValue, { color: theme.text }]}>
+                        {reservation.rider.email}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            )}
+
+            {/* Phone Number - Only if privacy is FULL */}
+            {reservation.rider.privacy === 'FULL' && reservation.rider.phoneNumber && (
+              <>
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                <View style={styles.infoRow}>
+                  <View style={styles.infoLeft}>
+                    <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                      <Ionicons name="call-outline" size={18} color={theme.primary} />
+                    </View>
+                    <View style={styles.infoTextContainer}>
+                      <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Phone</Text>
+                      <Text style={[styles.infoValue, { color: theme.text }]}>
+                        {reservation.rider.phoneNumber}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            )}
           </View>
         </View>
 
@@ -315,9 +521,36 @@ export const TripDetailScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>VEHICLE</Text>
           <View style={[styles.card, { backgroundColor: theme.card }, shadows.md]}>
-            <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
-              Vehicle details will go here
-            </Text>
+            {reservation.vehicles.length === 0 ? (
+              <Text style={[styles.placeholderText, { color: theme.textSecondary }]}>
+                No vehicle information available
+              </Text>
+            ) : (
+              <>
+                {reservation.vehicles.map((vehicle, index) => (
+                  <React.Fragment key={vehicle.vehicleId}>
+                    <View style={styles.infoRow}>
+                      <View style={styles.infoLeft}>
+                        <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                          <Ionicons name="car-outline" size={18} color={theme.primary} />
+                        </View>
+                        <View style={styles.infoTextContainer}>
+                          <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>
+                            {vehicle.vehicleModel}
+                          </Text>
+                          <Text style={[styles.infoValue, { color: theme.text }]}>
+                            {vehicle.plateNumber} {vehicle.quantity > 1 ? `×${vehicle.quantity}` : ''}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    {index < reservation.vehicles.length - 1 && (
+                      <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                    )}
+                  </React.Fragment>
+                ))}
+              </>
+            )}
           </View>
         </View>
       </View>
@@ -432,6 +665,11 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },
+  infoSubValue: {
+    fontSize: typography.sizes.xs,
+    marginTop: 2,
+    opacity: 0.7,
+  },
   divider: {
     height: 1,
     marginLeft: 64,
@@ -513,6 +751,116 @@ const styles = StyleSheet.create({
     height: 1,
     marginLeft: 56,
     marginVertical: spacing.xs,
+  },
+  itineraryContainer: {
+    paddingVertical: spacing.sm,
+  },
+  itineraryGroup: {
+    marginBottom: spacing.lg,
+  },
+  itineraryGroupTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+    opacity: 0.7,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+    gap: spacing.xs,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabActive: {
+    backgroundColor: 'transparent',
+  },
+  tabText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+  },
+  timelineContainer: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    position: 'relative',
+    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.sm,
+    alignItems: 'flex-start',
+    minHeight: 60,
+  },
+  timelineConnector: {
+    position: 'absolute',
+    left: 86,
+    top: 40,
+    width: 2,
+    bottom: -spacing.md,
+  },
+  timelineTimeContainer: {
+    width: 70,
+    paddingRight: spacing.sm,
+    alignItems: 'flex-end',
+    paddingTop: 4,
+  },
+  timelineTimeLabel: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.regular,
+    opacity: 0.6,
+    marginBottom: 2,
+  },
+  timelineTime: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+    lineHeight: 18,
+  },
+  timelineIconWrapper: {
+    width: 40,
+    alignItems: 'center',
+    paddingTop: 2,
+  },
+  timelineIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timelineContent: {
+    flex: 1,
+    paddingLeft: spacing.sm,
+    paddingTop: 4,
+    justifyContent: 'center',
+  },
+  timelineLocation: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    lineHeight: 22,
+  },
+  mapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  mapButtonText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
   },
 });
 

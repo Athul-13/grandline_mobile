@@ -151,13 +151,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.xs,
+    height: 20,
   },
   dateTime: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
+    lineHeight: 20,
   },
   chatIconButton: {
-    padding: spacing.xs,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginLeft: spacing.sm,
   },
   routeContainer: {
