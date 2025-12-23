@@ -68,6 +68,8 @@ export interface DriverReservationDetailsResponse {
   rider: DriverReservationRider;
   tripStartAt: string; // ISO
   tripEndAt: string; // ISO
+  startedAt?: string; // ISO - when driver explicitly started trip
+  completedAt?: string; // ISO - when driver explicitly ended trip
   chatEnabled: boolean;
 }
 

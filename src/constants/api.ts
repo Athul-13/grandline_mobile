@@ -46,6 +46,8 @@ export const API_ENDPOINTS = {
     SAVE_FCM_TOKEN: '/driver/fcm-token',
     DASHBOARD: '/driver/dashboard',
     RESERVATIONS: '/driver/reservations',
+    START_TRIP: (reservationId: string) => `/driver/trips/${reservationId}/start`,
+    END_TRIP: (reservationId: string) => `/driver/trips/${reservationId}/end`,
   },
   
   // App Features

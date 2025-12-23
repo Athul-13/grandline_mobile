@@ -7,3 +7,4 @@ export { driverReservationService } from './driver_reservation_service';
 export { driverService } from './driver_service';
 export { notificationService } from './notification_service';
 export { userService } from './user_service';
+export { tripService } from './trip_service';

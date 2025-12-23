@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "This app needs access to camera to take profile pictures and driver's license photos.",
-        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select profile pictures and driver's license photos."
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select profile pictures and driver's license photos.",
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to track your position during active trips.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to track your position during active trips, even when the app is in the background."
       },
       "bundleIdentifier": "com.grandline.driver"
     },
@@ -28,7 +30,10 @@
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION"
       ]
     },
     "web": {
@@ -55,6 +60,12 @@
           "icon": "./src/assets/images/logo.png",
           "color": "#C5630C",
           "sounds": []
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app needs access to your location to track your position during active trips, even when the app is in the background."
         }
       ]
     ],

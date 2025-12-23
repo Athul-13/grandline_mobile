@@ -43,6 +43,8 @@ export interface DriverDashboardTripCard {
   tripState: DriverTripState;
   tripStartAt: string; // ISO
   tripEndAt: string; // ISO
+  startedAt?: string; // ISO - when driver explicitly started trip
+  completedAt?: string; // ISO - when driver explicitly ended trip
   pickup: DriverDashboardTripStop;
   dropoff: DriverDashboardTripStop;
   rider: DriverDashboardRider;

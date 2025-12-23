@@ -7,6 +7,7 @@ import { TripListItem } from '../../components/trips/trip_list_item';
 import { borderRadius, spacing, typography } from '../../constants/theme';
 import { useDriverDashboard } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
+import { useLocationTracking } from '../../hooks/location';
 
 /**
  * Backend Pagination Contract (Verified):
@@ -52,6 +53,14 @@ export const DashboardScreen: React.FC = () => {
   const currentTrip = firstPage?.currentTrip ?? null;
   const allUpcomingTrips = firstPage?.upcomingTrips ?? [];
   const pastTrips = dashboardQuery.data?.pages?.flatMap((p) => p.pastTrips.items) ?? [];
+
+  // Location tracking for current trip
+  const locationTracking = useLocationTracking({
+    reservationId: currentTrip?.reservationId ?? null,
+    isTripStarted: !!currentTrip?.startedAt,
+    isTripCompleted: !!currentTrip?.completedAt,
+    enabled: !!currentTrip, // Only track if there's a current trip
+  });
 
   // Client-side progressive rendering: show first N, then increment on "View more"
   const visibleUpcomingTrips = allUpcomingTrips.slice(0, upcomingVisibleCount);
