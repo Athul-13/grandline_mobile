@@ -55,11 +55,14 @@ export const DashboardScreen: React.FC = () => {
   const pastTrips = dashboardQuery.data?.pages?.flatMap((p) => p.pastTrips.items) ?? [];
 
   // Location tracking for current trip
+  // Server determines currentTrip by tripState === 'CURRENT' (which is derived from startedAt)
+  // Since startedAt/completedAt are not in the dashboard response, we use tripState
+  const isActiveTrip = currentTrip?.tripState === 'CURRENT';
   const locationTracking = useLocationTracking({
     reservationId: currentTrip?.reservationId ?? null,
-    isTripStarted: !!currentTrip?.startedAt,
-    isTripCompleted: !!currentTrip?.completedAt,
-    enabled: !!currentTrip, // Only track if there's a current trip
+    isTripStarted: isActiveTrip, // tripState === 'CURRENT' implies startedAt exists
+    isTripCompleted: false, // tripState === 'CURRENT' implies completedAt is null
+    enabled: isActiveTrip, // Only track if there's a current trip
   });
 
   // Client-side progressive rendering: show first N, then increment on "View more"

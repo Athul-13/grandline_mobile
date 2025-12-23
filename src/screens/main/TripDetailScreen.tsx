@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
+import { useStartTrip } from '../../hooks/driver';
 import { useDriverReservation } from '../../hooks/driver/use_driver_reservation';
 import { useTheme } from '../../hooks/use-theme';
 
@@ -163,6 +164,7 @@ export const TripDetailScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const reservationQuery = useDriverReservation(reservationId);
   const [activeTab, setActiveTab] = useState<'outbound' | 'return'>('outbound');
+  const startTripMutation = useStartTrip();
 
   // Loading state
   if (reservationQuery.isLoading) {
@@ -203,6 +205,21 @@ export const TripDetailScreen: React.FC = () => {
   // Derive trip state for display
   const tripState = getTripState(reservation.tripStartAt, reservation.tripEndAt);
   const tripStateLabel = tripState === 'CURRENT' ? 'Current' : tripState === 'UPCOMING' ? 'Upcoming' : 'Past';
+
+  // Determine if Start Trip button should be shown
+  const canStartTrip = !reservation.startedAt && !reservation.completedAt && tripState === 'CURRENT';
+
+  // Handle Start Trip
+  const handleStartTrip = async () => {
+    try {
+      await startTripMutation.mutateAsync(reservationId);
+      // Optional: Navigate to Map tab after starting (user can also navigate manually)
+      // router.push('/(main)/(map)');
+    } catch (error) {
+      // Error handling is done by React Query
+      console.error('Failed to start trip:', error);
+    }
+  };
 
   // Get pickup and dropoff locations from itinerary (first and last stops)
   const pickupStop = reservation.itinerary[0];
@@ -575,6 +592,36 @@ export const TripDetailScreen: React.FC = () => {
             )}
           </View>
         </View>
+
+        {/* Trip Actions Section - Start Trip Only */}
+        {canStartTrip && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>TRIP ACTIONS</Text>
+            <View style={[styles.card, { backgroundColor: theme.card }, shadows.md]}>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: theme.primary },
+                  startTripMutation.isPending && styles.actionButtonDisabled,
+                ]}
+                onPress={handleStartTrip}
+                disabled={startTripMutation.isPending}
+              >
+                {startTripMutation.isPending ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.actionButtonText}>Starting Trip...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="play-circle-outline" size={20} color="#FFFFFF" />
+                    <Text style={styles.actionButtonText}>Start Trip</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -883,6 +930,24 @@ const styles = StyleSheet.create({
   mapButtonText: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  actionButtonDisabled: {
+    opacity: 0.6,
+  },
+  actionButtonText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: '#FFFFFF',
   },
 });
 
