@@ -45,10 +45,16 @@ export const ChatDetailScreen: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [resolvedChatId, setResolvedChatId] = useState<string>('');
   const [isResolvingChat, setIsResolvingChat] = useState(false);
+  const [isMessageDisabled, setIsMessageDisabled] = useState(false);
+  const [disabledMessage, setDisabledMessage] = useState<string>('');
   const currentUserId = driver?.driverId || '';
 
   // Resolve chat by context if contextType + contextId provided
   useEffect(() => {
+    // Reset disabled state when chat changes
+    setIsMessageDisabled(false);
+    setDisabledMessage('');
+
     if (chatId) {
       setResolvedChatId(chatId);
       return;
@@ -156,8 +162,20 @@ export const ChatDetailScreen: React.FC = () => {
       } else {
         throw new Error('Cannot send message: no chatId or context provided');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ChatDetailScreen] Error sending message:', err);
+      
+      // Check if error is due to trip being ended or chat window expired
+      const errorMessage = err?.message || '';
+      const errorCode = err?.code || '';
+      
+      if (errorCode === 'TRIP_ENDED' || errorMessage.includes('trip has ended')) {
+        setIsMessageDisabled(true);
+        setDisabledMessage('This trip has ended. Messaging is disabled.');
+      } else if (errorCode === 'CHAT_WINDOW_EXPIRED' || errorMessage.includes('24 hours')) {
+        setIsMessageDisabled(true);
+        setDisabledMessage('Chat is only available within 24 hours before trip start.');
+      }
     } finally {
       setIsSending(false);
     }
@@ -227,7 +245,8 @@ export const ChatDetailScreen: React.FC = () => {
         <MessageInput 
           chatId={resolvedChatId || 'temp'} 
           onSend={handleSend} 
-          disabled={isSending || isResolvingChat}
+          disabled={isSending || isResolvingChat || isMessageDisabled}
+          disabledMessage={isMessageDisabled ? disabledMessage : undefined}
           bottomInset={insets.bottom}
         />
       </KeyboardAvoidingView>
