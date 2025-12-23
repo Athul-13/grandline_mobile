@@ -475,6 +475,28 @@ export const TripDetailScreen: React.FC = () => {
               </View>
             </View>
 
+            {/* Chat with Rider Button - Only if chatEnabled */}
+            {reservation.chatEnabled && (
+              <>
+                <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+                <TouchableOpacity
+                  style={styles.mapButton}
+                  onPress={() => {
+                    router.push({
+                      pathname: '/(main)/(settings)/chat-detail',
+                      params: {
+                        contextType: 'reservation',
+                        contextId: reservation.reservationId,
+                      },
+                    });
+                  }}
+                >
+                  <Ionicons name="chatbubble-outline" size={20} color={theme.primary} />
+                  <Text style={[styles.mapButtonText, { color: theme.primary }]}>Chat with Rider</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             {/* Email - Only if privacy is FULL */}
             {reservation.rider.privacy === 'FULL' && reservation.rider.email && (
               <>

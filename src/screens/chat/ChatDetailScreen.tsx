@@ -14,11 +14,15 @@ import { MessageList } from '../../components/chat/message_list';
 import { useChat } from '../../contexts/chat_context';
 import { useSocket } from '../../hooks/socket/use_socket';
 import { useTheme } from '../../hooks/use-theme';
+import { chatService } from '../../services/api/chat_service';
+import { chatSocketService } from '../../services/socket/chat_socket_service';
 import type { RootState } from '../../store/store';
 
 export const ChatDetailScreen: React.FC = () => {
-  const params = useLocalSearchParams<{ chatId: string }>();
+  const params = useLocalSearchParams<{ chatId?: string; contextType?: string; contextId?: string }>();
   const chatId = params.chatId || '';
+  const contextType = params.contextType;
+  const contextId = params.contextId;
   const { driver } = useSelector((state: RootState) => state.auth);
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -35,17 +39,57 @@ export const ChatDetailScreen: React.FC = () => {
     markAsRead,
     setActiveChat,
     retryFailedMessage,
+    refreshChats,
   } = useChat();
 
   const [isSending, setIsSending] = useState(false);
+  const [resolvedChatId, setResolvedChatId] = useState<string>('');
+  const [isResolvingChat, setIsResolvingChat] = useState(false);
   const currentUserId = driver?.driverId || '';
 
-  const chat = chats.find((c) => c.chatId === chatId);
-  const chatMessages = messages[chatId] || [];
-  const chatTypingUsers = typingUsers[chatId] || [];
+  // Resolve chat by context if contextType + contextId provided
+  useEffect(() => {
+    if (chatId) {
+      setResolvedChatId(chatId);
+      return;
+    }
+
+    if (!contextType || !contextId) {
+      return;
+    }
+
+    const resolveChat = async () => {
+      setIsResolvingChat(true);
+      try {
+        const { chat } = await chatService.getChatByContext({ contextType, contextId });
+        if (chat) {
+          setResolvedChatId(chat.chatId);
+          // Refresh chats to include this one
+          await refreshChats();
+        } else {
+          // Chat doesn't exist yet - will be auto-created on first message
+          // Use empty string, messages will be sent with contextType + contextId
+          setResolvedChatId('');
+        }
+      } catch (err) {
+        console.error('[ChatDetailScreen] Error resolving chat by context:', err);
+      } finally {
+        setIsResolvingChat(false);
+      }
+    };
+
+    resolveChat();
+  }, [chatId, contextType, contextId, refreshChats]);
+
+  const chat = resolvedChatId ? chats.find((c) => c.chatId === resolvedChatId) : null;
+  const chatMessages = resolvedChatId ? messages[resolvedChatId] || [] : [];
+  const chatTypingUsers = resolvedChatId ? typingUsers[resolvedChatId] || [] : [];
   
   // Get chat title and subtitle
   const getChatTitle = () => {
+    if (contextType === 'reservation') {
+      return 'Chat with Rider';
+    }
     return 'Chat with Admin';
   };
   
@@ -53,33 +97,65 @@ export const ChatDetailScreen: React.FC = () => {
     if (chat) {
       return `${chat.contextType}: ${chat.contextId}`;
     }
+    if (contextType && contextId) {
+      return `${contextType}: ${contextId}`;
+    }
     return '';
   };
 
   useEffect(() => {
-    if (!chatId) {
+    if (!resolvedChatId) {
       return;
     }
 
     // Set active chat when screen mounts
-    setActiveChat(chatId);
+    setActiveChat(resolvedChatId);
 
     // Load messages
-    loadMessages(chatId).catch(console.error);
+    loadMessages(resolvedChatId).catch(console.error);
 
     // Mark as read when opening chat
-    markAsRead(chatId).catch(console.error);
+    markAsRead(resolvedChatId).catch(console.error);
 
     // Cleanup: leave chat when screen unmounts
     return () => {
       setActiveChat(null);
     };
-  }, [chatId, setActiveChat, loadMessages, markAsRead]);
+  }, [resolvedChatId, setActiveChat, loadMessages, markAsRead]);
 
   const handleSend = async (content: string) => {
     setIsSending(true);
     try {
-      await sendMessage(chatId, content);
+      if (resolvedChatId) {
+        // Use existing chat
+        await sendMessage(resolvedChatId, content);
+      } else if (contextType && contextId) {
+        // Send with contextType + contextId (backend will auto-create chat)
+        await new Promise<void>((resolve, reject) => {
+          const cleanup = chatSocketService.sendMessage(
+            { contextType, contextId, content: content.trim() },
+            async (message) => {
+              cleanup?.();
+              // Chat was created, refresh chats and resolve chatId
+              await refreshChats();
+              const { chat: newChat } = await chatService.getChatByContext({ contextType, contextId });
+              if (newChat) {
+                setResolvedChatId(newChat.chatId);
+                // Load messages for the new chat
+                await loadMessages(newChat.chatId).catch(console.error);
+              }
+              resolve();
+            },
+            (error) => {
+              cleanup?.();
+              console.error('[ChatDetailScreen] Error sending message:', error);
+              reject(new Error(error.message || 'Failed to send message'));
+            }
+          );
+        });
+      } else {
+        throw new Error('Cannot send message: no chatId or context provided');
+      }
     } catch (err) {
       console.error('[ChatDetailScreen] Error sending message:', err);
     } finally {
@@ -88,22 +164,24 @@ export const ChatDetailScreen: React.FC = () => {
   };
 
   const handleRefresh = async () => {
+    if (!resolvedChatId) return;
     try {
-      await loadMessages(chatId);
+      await loadMessages(resolvedChatId);
     } catch (err) {
       console.error('[ChatDetailScreen] Error refreshing messages:', err);
     }
   };
   
   const handleRetry = async (messageId: string) => {
+    if (!resolvedChatId) return;
     try {
-      await retryFailedMessage(chatId, messageId);
+      await retryFailedMessage(resolvedChatId, messageId);
     } catch (err) {
       console.error('[ChatDetailScreen] Error retrying message:', err);
     }
   };
 
-  if (isLoading && chatMessages.length === 0) {
+  if (isResolvingChat || (isLoading && chatMessages.length === 0 && resolvedChatId)) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primary} />
@@ -147,9 +225,9 @@ export const ChatDetailScreen: React.FC = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <MessageInput 
-          chatId={chatId} 
+          chatId={resolvedChatId || 'temp'} 
           onSend={handleSend} 
-          disabled={isSending}
+          disabled={isSending || isResolvingChat}
           bottomInset={insets.bottom}
         />
       </KeyboardAvoidingView>

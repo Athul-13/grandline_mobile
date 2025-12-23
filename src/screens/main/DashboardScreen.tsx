@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyTripState } from '../../components/trips/empty_trip_state';
 import { TripListItem } from '../../components/trips/trip_list_item';
@@ -26,6 +26,20 @@ export const DashboardScreen: React.FC = () => {
 
   // Client-side progressive rendering for Upcoming Trips
   const [upcomingVisibleCount, setUpcomingVisibleCount] = useState(INITIAL_UPCOMING_LIMIT);
+  
+  // Pull to refresh state
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await dashboardQuery.refetch();
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleTripPress = (reservationId: string) => {
     router.push({
@@ -51,6 +65,13 @@ export const DashboardScreen: React.FC = () => {
     <ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
       contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={theme.primary}
+        />
+      }
     >
       <View style={[styles.content, { paddingTop: insets.top + spacing.lg }]}>
         {/* Loading State */}
