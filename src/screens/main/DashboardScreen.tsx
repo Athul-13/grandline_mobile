@@ -8,6 +8,7 @@ import { borderRadius, spacing, typography } from '../../constants/theme';
 import { useDriverDashboard } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
 import { useLocationTracking } from '../../hooks/location';
+import { useTripSocketEvents } from '../../hooks/socket';
 
 /**
  * Backend Pagination Contract (Verified):
@@ -24,6 +25,9 @@ export const DashboardScreen: React.FC = () => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const dashboardQuery = useDriverDashboard({ pastLimit: 10 });
+  
+  // Listen for trip socket events (driver/vehicle changes)
+  useTripSocketEvents();
 
   // Client-side progressive rendering for Upcoming Trips
   const [upcomingVisibleCount, setUpcomingVisibleCount] = useState(INITIAL_UPCOMING_LIMIT);
