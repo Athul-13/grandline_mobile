@@ -4,8 +4,9 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -15,10 +16,12 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
 import { useStartTrip } from '../../hooks/driver';
 import { useDriverReservation } from '../../hooks/driver/use_driver_reservation';
 import { useTheme } from '../../hooks/use-theme';
+import { formatTimeAgo } from '../../utils/time_format';
 
 /**
  * Derive trip state from dates (for display only)
@@ -162,9 +165,26 @@ export const TripDetailScreen: React.FC = () => {
   const reservationId = params.reservationId || '';
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const reservationQuery = useDriverReservation(reservationId);
   const [activeTab, setActiveTab] = useState<'outbound' | 'return'>('outbound');
   const startTripMutation = useStartTrip();
+
+  // Refetch reservation data when screen comes into focus
+  // Mark query as stale first to force a refetch even if data is considered fresh
+  useFocusEffect(
+    useCallback(() => {
+      if (reservationId) {
+        // Mark the query as stale to force a refetch
+        queryClient.invalidateQueries({ 
+          queryKey: ['driver', 'reservation', reservationId] 
+        });
+        // Then refetch to get the latest data
+        reservationQuery.refetch();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [reservationId, queryClient])
+  );
 
   // Loading state
   if (reservationQuery.isLoading) {
@@ -208,17 +228,45 @@ export const TripDetailScreen: React.FC = () => {
 
   // Determine if Start Trip button should be shown
   const canStartTrip = !reservation.startedAt && !reservation.completedAt && tripState === 'CURRENT';
+  
+  // Determine if trip is in progress (started but not completed)
+  const isTripInProgress = !!reservation.startedAt && !reservation.completedAt;
 
   // Handle Start Trip
   const handleStartTrip = async () => {
     try {
       await startTripMutation.mutateAsync(reservationId);
-      // Optional: Navigate to Map tab after starting (user can also navigate manually)
-      // router.push('/(main)/(map)');
-    } catch (error) {
-      // Error handling is done by React Query
+      // Navigate to Map tab after starting trip
+      router.replace('/(main)/(map)');
+    } catch (error: any) {
+      // Check if error is "Trip has already been started"
+      // In this case, the trip is already started, so we should navigate to map
+      const errorMessage = error?.message || error?.data?.message || '';
+      const isAlreadyStarted = 
+        errorMessage.toLowerCase().includes('already been started') ||
+        errorMessage.toLowerCase().includes('already started');
+
+      if (isAlreadyStarted) {
+        // Trip is already started - navigate to map instead of showing error
+        router.replace('/(main)/(map)');
+        return;
+      }
+
+      // For other errors, log them (error handling is done by React Query)
       console.error('Failed to start trip:', error);
     }
+  };
+  
+  // Handle View on Map
+  const handleViewOnMap = () => {
+    router.replace('/(main)/(map)');
+  };
+  
+  // Format started time for display
+  const getStartedTimeText = (): string => {
+    if (!reservation.startedAt) return '';
+    const startedTime = new Date(reservation.startedAt).getTime();
+    return formatTimeAgo(startedTime);
   };
 
   // Get pickup and dropoff locations from itinerary (first and last stops)
@@ -593,7 +641,7 @@ export const TripDetailScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Trip Actions Section - Start Trip Only */}
+        {/* Trip Actions Section - Start Trip */}
         {canStartTrip && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>TRIP ACTIONS</Text>
@@ -618,6 +666,38 @@ export const TripDetailScreen: React.FC = () => {
                     <Text style={styles.actionButtonText}>Start Trip</Text>
                   </>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Trip Actions Section - Trip in Progress */}
+        {isTripInProgress && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>TRIP STATUS</Text>
+            <View style={[styles.card, { backgroundColor: theme.card }, shadows.md]}>
+              {/* Trip in Progress Status */}
+              <View style={styles.tripStatusContainer}>
+                <View style={[styles.tripStatusIconContainer, { backgroundColor: `${theme.success}1A` }]}>
+                  <Ionicons name="checkmark-circle" size={24} color={theme.success} />
+                </View>
+                <View style={styles.tripStatusContent}>
+                  <Text style={[styles.tripStatusTitle, { color: theme.text }]}>Trip in Progress</Text>
+                  <Text style={[styles.tripStatusSubtitle, { color: theme.textSecondary }]}>
+                    Started {getStartedTimeText()}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+
+              {/* View on Map Button */}
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: theme.primary }]}
+                onPress={handleViewOnMap}
+              >
+                <Ionicons name="map-outline" size={20} color="#FFFFFF" />
+                <Text style={styles.actionButtonText}>View on Map</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -948,6 +1028,31 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
     color: '#FFFFFF',
+  },
+  tripStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  tripStatusIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  tripStatusContent: {
+    flex: 1,
+  },
+  tripStatusTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    marginBottom: 4,
+  },
+  tripStatusSubtitle: {
+    fontSize: typography.sizes.sm,
   },
 });
 

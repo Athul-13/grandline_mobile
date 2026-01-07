@@ -241,6 +241,7 @@ export const MapScreen: React.FC = () => {
                     );
                     
                     // Only move camera if driver moved significantly (>50m)
+                    // Use a longer animation duration to avoid interfering with user gestures
                     if (distance > 0.05) {
                       const newRegion: Region = {
                         latitude: newLocation.coords.latitude,
@@ -248,7 +249,8 @@ export const MapScreen: React.FC = () => {
                         latitudeDelta: currentCenter.latitudeDelta,
                         longitudeDelta: currentCenter.longitudeDelta,
                       };
-                      mapRef.current.animateToRegion(newRegion, 1000);
+                      // Use a smoother, longer animation to avoid conflicts with user interaction
+                      mapRef.current.animateToRegion(newRegion, 2000);
                       currentRegionRef.current = newRegion;
                     }
                   }
@@ -413,6 +415,17 @@ export const MapScreen: React.FC = () => {
         initialRegion={mapRegion}
         showsUserLocation={false} // Use custom animated marker instead
         showsMyLocationButton={false}
+        scrollEnabled={true}
+        zoomEnabled={true}
+        pitchEnabled={true}
+        rotateEnabled={true}
+        onRegionChange={(newRegion: Region) => {
+          // Detect user interaction when region changes
+          if (!isFollowing) {
+            setMapRegion(newRegion);
+            currentRegionRef.current = newRegion;
+          }
+        }}
         onRegionChangeComplete={(newRegion: Region) => {
           setMapRegion(newRegion);
           currentRegionRef.current = newRegion;
@@ -422,6 +435,10 @@ export const MapScreen: React.FC = () => {
           setIsFollowing(false);
         }}
         onPress={() => {
+          setUserHasInteracted(true);
+          setIsFollowing(false);
+        }}
+        onPoiClick={() => {
           setUserHasInteracted(true);
           setIsFollowing(false);
         }}

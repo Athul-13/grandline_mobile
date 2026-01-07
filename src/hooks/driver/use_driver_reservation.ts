@@ -13,6 +13,8 @@ export const useDriverReservation = (reservationId: string) => {
     queryKey: ['driver', 'reservation', reservationId],
     queryFn: () => driverReservationService.getReservation(reservationId),
     enabled: !!reservationId, // Only fetch if reservationId exists
+    staleTime: 0, // Always consider data stale - refetch on mount/focus
+    refetchOnMount: true, // Always refetch when component mounts
   });
 };
 
