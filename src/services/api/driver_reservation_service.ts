@@ -71,6 +71,10 @@ export interface DriverReservationDetailsResponse {
   startedAt?: string; // ISO - when driver explicitly started trip
   completedAt?: string; // ISO - when driver explicitly ended trip
   chatEnabled: boolean;
+  driverReport?: {
+    content: string;
+    submittedAt: string; // ISO
+  };
 }
 
 /**

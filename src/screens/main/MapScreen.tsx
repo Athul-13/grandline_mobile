@@ -10,8 +10,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Callout, Marker, Polyline, Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TripReportModal } from '../../components/trips/trip_report_modal';
 import { borderRadius, shadows, spacing, tabBar, typography } from '../../constants/theme';
-import { useEndTrip } from '../../hooks/driver';
+import { useEndTrip, useSubmitDriverReport } from '../../hooks/driver';
 import { useDriverDashboard } from '../../hooks/driver/use_driver_dashboard';
 import { useDriverReservation } from '../../hooks/driver/use_driver_reservation';
 import { useLocationTracking } from '../../hooks/location/use_location_tracking';
@@ -122,6 +123,9 @@ export const MapScreen: React.FC = () => {
 
   // End Trip mutation
   const endTripMutation = useEndTrip();
+  const submitReportMutation = useSubmitDriverReport();
+  const [showReportModal, setShowReportModal] = useState(false);
+  const reportReservationIdRef = useRef<string | null>(null); // Store reservationId for report submission
 
   // Location tracking for active trip (sends updates to server)
   // tripState === 'CURRENT' means startedAt exists and completedAt is null (per server logic)
@@ -292,11 +296,39 @@ export const MapScreen: React.FC = () => {
     if (!activeReservationId) return;
 
     try {
+      // Capture reservationId before trip ends (it will become null after)
+      reportReservationIdRef.current = activeReservationId;
       await endTripMutation.mutateAsync(activeReservationId);
-      // Cache invalidation will automatically refetch dashboard and clear the map
+      // Show report modal after successful trip end (optional - driver can skip)
+      setShowReportModal(true);
     } catch (error) {
       console.error('Failed to end trip:', error);
       Alert.alert('Error', 'Failed to end trip. Please try again.');
+      reportReservationIdRef.current = null; // Clear on error
+    }
+  };
+
+  // Handle Submit Report
+  const handleSubmitReport = async (reportContent: string) => {
+    // Use the captured reservationId from ref
+    const reservationId = reportReservationIdRef.current;
+    if (!reservationId) {
+      Alert.alert('Error', 'Reservation ID not available');
+      return;
+    }
+
+    try {
+      await submitReportMutation.mutateAsync({
+        reservationId,
+        reportContent,
+      });
+      // Clear the ref after successful submission
+      reportReservationIdRef.current = null;
+      // Modal will close on success
+    } catch (error: any) {
+      const errorMessage = error?.message || error?.data?.message || 'Failed to submit report';
+      Alert.alert('Error', errorMessage);
+      throw error; // Re-throw to prevent modal from closing
     }
   };
 
@@ -396,6 +428,17 @@ export const MapScreen: React.FC = () => {
             </Text>
           </View>
         </View>
+
+        {/* Trip Report Modal - Must be here too to persist after trip ends */}
+        <TripReportModal
+          isVisible={showReportModal}
+          onClose={() => {
+            setShowReportModal(false);
+            reportReservationIdRef.current = null; // Clear ref when modal closes
+          }}
+          onSubmit={handleSubmitReport}
+          isLoading={submitReportMutation.isPending}
+        />
       </View>
     );
   }
@@ -577,6 +620,17 @@ export const MapScreen: React.FC = () => {
           </>
         )}
       </TouchableOpacity>
+
+      {/* Trip Report Modal */}
+      <TripReportModal
+        isVisible={showReportModal}
+        onClose={() => {
+          setShowReportModal(false);
+          reportReservationIdRef.current = null; // Clear ref when modal closes
+        }}
+        onSubmit={handleSubmitReport}
+        isLoading={submitReportMutation.isPending}
+      />
     </View>
   );
 };

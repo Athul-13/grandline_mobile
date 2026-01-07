@@ -48,6 +48,7 @@ export const API_ENDPOINTS = {
     RESERVATIONS: '/driver/reservations',
     START_TRIP: (reservationId: string) => `/driver/trips/${reservationId}/start`,
     END_TRIP: (reservationId: string) => `/driver/trips/${reservationId}/end`,
+    SUBMIT_REPORT: (reservationId: string) => `/driver/trips/${reservationId}/report`,
   },
   
   // App Features

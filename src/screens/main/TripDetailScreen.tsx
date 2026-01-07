@@ -5,6 +5,7 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
@@ -16,7 +17,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useQueryClient } from '@tanstack/react-query';
 import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
 import { useStartTrip } from '../../hooks/driver';
 import { useDriverReservation } from '../../hooks/driver/use_driver_reservation';
@@ -702,6 +702,34 @@ export const TripDetailScreen: React.FC = () => {
             </View>
           </View>
         )}
+
+        {/* Driver Report Section - Only if report exists */}
+        {reservation.driverReport && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>DRIVER REPORT</Text>
+            <View style={[styles.card, { backgroundColor: theme.card }, shadows.md]}>
+              <View style={styles.reportHeader}>
+                <View style={[styles.reportIconContainer, { backgroundColor: `${theme.primary}1A` }]}>
+                  <Ionicons name="document-text" size={20} color={theme.primary} />
+                </View>
+                <View style={styles.reportHeaderContent}>
+                  <Text style={[styles.reportTitle, { color: theme.text }]}>Trip Report</Text>
+                  <Text style={[styles.reportSubtitle, { color: theme.textSecondary }]}>
+                    Submitted {formatTimeAgo(new Date(reservation.driverReport.submittedAt).getTime())}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={[styles.divider, { backgroundColor: theme.divider }]} />
+
+              <View style={styles.reportContent}>
+                <Text style={[styles.reportText, { color: theme.text }]}>
+                  {reservation.driverReport.content}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -1053,6 +1081,39 @@ const styles = StyleSheet.create({
   },
   tripStatusSubtitle: {
     fontSize: typography.sizes.sm,
+  },
+  reportHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  reportIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  reportHeaderContent: {
+    flex: 1,
+  },
+  reportTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    marginBottom: 4,
+  },
+  reportSubtitle: {
+    fontSize: typography.sizes.sm,
+  },
+  reportContent: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  reportText: {
+    fontSize: typography.sizes.md,
+    lineHeight: 22,
   },
 });
 
