@@ -15,6 +15,7 @@ interface MessageInputProps {
   chatId: string;
   onSend: (content: string) => void;
   disabled?: boolean;
+  disabledMessage?: string;
   bottomInset?: number;
 }
 
@@ -22,6 +23,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   chatId,
   onSend,
   disabled = false,
+  disabledMessage,
   bottomInset = 0,
 }) => {
   const { theme } = useTheme();
@@ -108,6 +110,13 @@ export const MessageInput: React.FC<MessageInputProps> = ({
           <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
         </View>
       )}
+
+      {disabled && disabledMessage && (
+        <View style={[styles.disabledBanner, { backgroundColor: theme.textSecondary + '10' }]}>
+          <Ionicons name="information-circle" size={16} color={theme.textSecondary} />
+          <Text style={[styles.disabledText, { color: theme.textSecondary }]}>{disabledMessage}</Text>
+        </View>
+      )}
       
       <View style={styles.inputRow}>
         <TextInput
@@ -164,6 +173,19 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   errorText: {
+    flex: 1,
+    fontSize: typography.sizes.xs,
+  },
+  disabledBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.xs,
+  },
+  disabledText: {
     flex: 1,
     fontSize: typography.sizes.xs,
   },

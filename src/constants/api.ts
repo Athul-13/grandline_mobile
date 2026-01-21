@@ -44,6 +44,11 @@ export const API_ENDPOINTS = {
     GET_DRIVER_INFO: '/driver/info',
     PROFILE_PICTURE_UPLOAD_URL: '/driver/profile/upload-url',
     SAVE_FCM_TOKEN: '/driver/fcm-token',
+    DASHBOARD: '/driver/dashboard',
+    RESERVATIONS: '/driver/reservations',
+    START_TRIP: (reservationId: string) => `/driver/trips/${reservationId}/start`,
+    END_TRIP: (reservationId: string) => `/driver/trips/${reservationId}/end`,
+    SUBMIT_REPORT: (reservationId: string) => `/driver/trips/${reservationId}/report`,
   },
   
   // App Features

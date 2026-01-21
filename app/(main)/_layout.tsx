@@ -6,7 +6,6 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NotificationBadge } from '../../src/components/notifications/notification_badge';
 import { ProtectedRoute } from '../../src/components/routes/protected_route';
-import { useChat } from '../../src/contexts/chat_context';
 import { useNotifications } from '../../src/contexts/notification_context';
 
 // Define the colors for easier maintenance
@@ -43,15 +42,6 @@ export default function MainLayout() {
             }}
           />
           <Tabs.Screen
-            name="chat"
-            options={{
-              title: 'Chat',
-              tabBarIcon: ({ color, size }) => (
-                <Ionicons name="chatbubbles" size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
             name="(settings)"
             options={{
               title: 'Settings',
@@ -77,7 +67,6 @@ function CustomTabBar() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = React.useState('dashboard');
   const { unreadCount } = useNotifications();
-  const { totalUnreadCount } = useChat();
   const insets = useSafeAreaInsets();
   
   // Debug: Track pathname changes
@@ -90,8 +79,6 @@ function CustomTabBar() {
       setActiveTab('dashboard');
     } else if (pathname === '/(main)/(map)' || pathname === '/(main)/(map)/') {
       setActiveTab('map');
-    } else if (pathname?.startsWith('/(main)/chat')) {
-      setActiveTab('chat');
     } else if (pathname === '/(main)/(settings)' || pathname === '/(main)/(settings)/' || pathname?.startsWith('/(main)/(settings)/')) {
       setActiveTab('settings');
     }
@@ -100,7 +87,6 @@ function CustomTabBar() {
   const tabs = [
     { key: 'dashboard', title: 'Dashboard', icon: 'home', route: '/(main)/(dashboard)' },
     { key: 'map', title: 'Map', icon: 'map', route: '/(main)/(map)' },
-    { key: 'chat', title: 'Chat', icon: 'chatbubbles', route: '/(main)/chat/chat-list', badgeCount: totalUnreadCount },
     { key: 'settings', title: 'Settings', icon: 'settings', route: '/(main)/(settings)', badgeCount: unreadCount },
   ];
 

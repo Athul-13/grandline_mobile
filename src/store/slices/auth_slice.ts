@@ -19,8 +19,21 @@ export const refreshUserToken = createAsyncThunk(
   'auth/refreshUserToken',
   async (_, { rejectWithValue }) => {
     try {
-      const response: AuthResponse = await authService.refreshToken();
-      return response;
+      const response = await authService.refreshToken();
+
+      // Some refresh endpoints return only a new access token.
+      // Fall back to stored refresh token (and driver) to avoid clearing auth on app reload.
+      const stored = await authStorage.loadAuthData();
+
+      const accessToken = response?.accessToken;
+      const refreshToken = response?.refreshToken ?? stored.refreshToken ?? null;
+      const driver = response?.driver ?? stored.driver ?? null;
+
+      if (!accessToken || !refreshToken) {
+        return rejectWithValue('Token refresh failed');
+      }
+
+      return { accessToken, refreshToken, driver } as AuthResponse;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
       return rejectWithValue(errorMessage);
@@ -141,13 +154,14 @@ const authSlice = createSlice({
     builder
       .addCase(refreshUserToken.fulfilled, (state, action) => {
         state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
+        // Some refresh flows may keep the existing refresh token.
+        state.refreshToken = action.payload.refreshToken ?? state.refreshToken;
         state.error = null;
         
         // Update tokens in secure storage
         authStorage.updateTokens({
           accessToken: action.payload.accessToken,
-          refreshToken: action.payload.refreshToken,
+          refreshToken: action.payload.refreshToken ?? state.refreshToken ?? '',
         }).catch((error) => {
           console.error('[AuthSlice] Error updating tokens in storage after refresh:', error);
         });

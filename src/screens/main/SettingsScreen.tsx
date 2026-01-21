@@ -69,7 +69,6 @@ export const SettingsScreen: React.FC = () => {
         </Text>
       </View>
 
-      {/* Settings Sections */}
       <View style={styles.content}>
         {/* Account Section */}
         <View style={styles.section}>
@@ -104,6 +103,31 @@ export const SettingsScreen: React.FC = () => {
                 </View>
                 <Text style={[styles.menuItemText, { color: theme.text }]}>
                   Notifications
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+      {/* Settings Sections */}
+
+        {/* Messages Section */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+            Messages
+          </Text>
+          <View style={[styles.card, { backgroundColor: theme.card }]}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/(main)/(settings)/chats')}
+            >
+              <View style={styles.menuItemLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.primaryLight }]}>
+                  <Ionicons name="chatbubbles-outline" size={20} color={theme.primary} />
+                </View>
+                <Text style={[styles.menuItemText, { color: theme.text }]}>
+                  Chats
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={theme.primary} />

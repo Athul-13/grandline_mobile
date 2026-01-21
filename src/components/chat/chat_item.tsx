@@ -4,10 +4,11 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { borderRadius, shadows, spacing, typography } from '../../constants/theme';
 import { useTheme } from '../../hooks/use-theme';
-import { spacing, typography, borderRadius, shadows } from '../../constants/theme';
 import type { Chat } from '../../types/chat';
+import { ParticipantType } from '../../types/chat';
 
 interface ChatItemProps {
   chat: Chat;
@@ -15,33 +16,67 @@ interface ChatItemProps {
   unreadCount?: number;
 }
 
-export const ChatItem: React.FC<ChatItemProps> = ({ chat, onPress, unreadCount = 0 }) => {
+export const ChatItem: React.FC<ChatItemProps> = ({
+  chat,
+  onPress,
+  unreadCount = 0,
+}) => {
   const { theme } = useTheme();
-  
+
+  const isAdminChat = chat.participantType === ParticipantType.ADMIN_DRIVER;
+
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.container,
-        { 
+        {
           backgroundColor: theme.card,
           borderColor: theme.border,
-        }
-      ]} 
+        },
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       <View style={styles.content}>
         <View style={styles.info}>
-          <Text style={[styles.contextType, { color: theme.text }]} numberOfLines={1}>
-            {chat.contextType} - {chat.contextId}
-          </Text>
-          <Text style={[styles.participantType, { color: theme.textSecondary }]} numberOfLines={1}>
-            {chat.participantType}
-          </Text>
+          {isAdminChat ? (
+            // 🔹 ADMIN CHAT (minimal & clear)
+            <View style={styles.adminRow}>
+              <View style={[styles.adminBadge, { backgroundColor: theme.primary }]}>
+                <Text style={styles.adminBadgeText}>Admin</Text>
+              </View>
+              <Text
+                style={[styles.title, { color: theme.text }]}
+                numberOfLines={1}
+              >
+                Admin Support
+              </Text>
+            </View>
+          ) : (
+            // 🔹 NORMAL CHAT
+            <>
+              <Text
+                style={[styles.title, { color: theme.text }]}
+                numberOfLines={1}
+              >
+                {chat.contextType}
+              </Text>
+
+              <Text
+                style={[styles.subtitle, { color: theme.textSecondary }]}
+                numberOfLines={1}
+              >
+                {chat.participantType}
+              </Text>
+            </>
+          )}
         </View>
+
         {unreadCount > 0 && (
           <View style={[styles.badge, { backgroundColor: theme.primary }]}>
-            <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+            <Text style={styles.badgeText}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </Text>
           </View>
         )}
       </View>
@@ -67,14 +102,35 @@ const styles = StyleSheet.create({
   info: {
     flex: 1,
   },
-  contextType: {
+
+  // Admin
+  adminRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  adminBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  adminBadgeText: {
+    color: 'white',
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+  },
+
+  // Text
+  title: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
-    marginBottom: spacing.xs,
   },
-  participantType: {
+  subtitle: {
+    marginTop: spacing.xs,
     fontSize: typography.sizes.sm,
   },
+
+  // Unread badge
   badge: {
     borderRadius: borderRadius.full,
     minWidth: 24,

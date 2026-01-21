@@ -3,14 +3,22 @@
  * Displays a list of messages in a chat
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { View, Text, FlatList, StyleSheet, RefreshControl, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../hooks/use-theme';
-import { spacing, typography } from '../../constants/theme';
+import { spacing, typography, borderRadius } from '../../constants/theme';
 import { MessageItem } from './message_item';
 import { TypingIndicator } from './typing_indicator';
 import { EmptyChatState } from './empty_chat_state';
+import { getDateLabel, isDifferentDay } from '../../utils/chat_utils';
 import type { Message } from '../../types/chat';
+
+interface MessageWithSeparator {
+  type: 'message' | 'dateSeparator';
+  message?: Message;
+  dateLabel?: string;
+  key: string;
+}
 
 interface MessageListProps {
   messages: Message[];
@@ -33,6 +41,36 @@ export const MessageList: React.FC<MessageListProps> = ({
 }) => {
   const { theme } = useTheme();
   const flatListRef = useRef<FlatList>(null);
+
+  // Prepare messages with date separators
+  const messagesWithSeparators = useMemo<MessageWithSeparator[]>(() => {
+    if (messages.length === 0) return [];
+
+    const result: MessageWithSeparator[] = [];
+    
+    for (let i = 0; i < messages.length; i++) {
+      const message = messages[i];
+      const messageDate = new Date(message.createdAt);
+      
+      // Add date separator if this is the first message or date changed
+      if (i === 0 || isDifferentDay(messageDate, new Date(messages[i - 1].createdAt))) {
+        result.push({
+          type: 'dateSeparator',
+          dateLabel: getDateLabel(messageDate),
+          key: `date-${messageDate.toISOString().split('T')[0]}`,
+        });
+      }
+      
+      // Add the message
+      result.push({
+        type: 'message',
+        message,
+        key: message.messageId,
+      });
+    }
+    
+    return result;
+  }, [messages]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -60,15 +98,33 @@ export const MessageList: React.FC<MessageListProps> = ({
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
         ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.messageId}
-        renderItem={({ item }) => (
-          <MessageItem 
-            message={item} 
-            isOwnMessage={item.senderId === currentUserId} 
-            onRetry={onRetry}
-          />
-        )}
+        data={messagesWithSeparators}
+        keyExtractor={(item) => item.key}
+        renderItem={({ item }) => {
+          if (item.type === 'dateSeparator') {
+            return (
+              <View style={styles.dateSeparatorContainer}>
+                <View style={[styles.dateSeparator, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                  <Text style={[styles.dateSeparatorText, { color: theme.textSecondary }]}>
+                    {item.dateLabel}
+                  </Text>
+                </View>
+              </View>
+            );
+          }
+          
+          if (item.message) {
+            return (
+              <MessageItem 
+                message={item.message} 
+                isOwnMessage={item.message.senderId === currentUserId} 
+                onRetry={onRetry}
+              />
+            );
+          }
+          
+          return null;
+        }}
         refreshControl={
           onRefresh ? (
             <RefreshControl 
@@ -108,6 +164,21 @@ const styles = StyleSheet.create({
   },
   emptyContent: {
     flexGrow: 1,
+  },
+  dateSeparatorContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
+  dateSeparator: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+  },
+  dateSeparatorText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
   },
 });
 

@@ -52,6 +52,11 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage,
         >
           {message.content}
         </Text>
+        <View style={styles.timestampRow}>
+          <Text style={[styles.timestampInside, { color: isOwnMessage ? 'rgba(255,255,255,0.7)' : theme.textSecondary }]}>
+            {formatMessageTime(message.createdAt)}
+          </Text>
+        </View>
         {message.status === 'failed' && isOwnMessage && (
           <TouchableOpacity onPress={handleRetry} style={styles.retryButton}>
             <Text style={[styles.retryText, { color: theme.error }]}>Tap to retry</Text>
@@ -70,10 +75,6 @@ export const MessageItem: React.FC<MessageItemProps> = ({ message, isOwnMessage,
             isOwnMessage={isOwnMessage}
           />
         )}
-        
-        <Text style={[styles.timestampOutside, { color: theme.textSecondary }]}>
-          {formatMessageTime(message.createdAt)}
-        </Text>
       </View>
     </View>
   );
@@ -107,6 +108,13 @@ const styles = StyleSheet.create({
   content: {
     fontSize: typography.sizes.md,
     lineHeight: 20,
+    marginBottom: spacing.xs,
+  },
+  timestampRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 2,
   },
   metaRow: {
     flexDirection: 'row',
@@ -123,9 +131,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   
-  timestampOutside: {
+  timestampInside: {
     fontSize: typography.sizes.xs,
-    marginRight: spacing.xs,
+    alignSelf: 'flex-end',
   },
   retryButton: {
     marginTop: spacing.xs,

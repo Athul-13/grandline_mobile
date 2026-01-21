@@ -1,7 +1,39 @@
 import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { API_CONFIG, API_ENDPOINTS, HTTP_STATUS } from '../../constants/api';
-import { refreshUserToken } from '../../store/slices/auth_slice';
-import { store } from '../../store/store';
+import { authStorage } from '../storage/auth_storage';
+
+type RefreshTokensFn = () => Promise<void>;
+type IsAuthenticatedFn = () => boolean;
+type OnAuthFailureFn = (reason: 'refresh_failed' | 'unauthorized') => void;
+
+interface AxiosAuthHandlers {
+  getAccessToken: () => Promise<string | null>;
+  refreshTokens: RefreshTokensFn;
+  isAuthenticated?: IsAuthenticatedFn;
+  onAuthFailure?: OnAuthFailureFn;
+}
+
+const defaultAuthHandlers: AxiosAuthHandlers = {
+  getAccessToken: () => authStorage.getAccessToken(),
+  refreshTokens: async () => {
+    throw new Error(
+      '[AxiosClient] refreshTokens handler not configured. Call setAxiosAuthHandlers(...) during app startup.'
+    );
+  },
+};
+
+let authHandlers: AxiosAuthHandlers = defaultAuthHandlers;
+
+/**
+ * Configure how the axios client reads tokens / refreshes tokens.
+ *
+ * IMPORTANT:
+ * - This function exists to avoid importing Redux/auth modules inside `axios_client` (break require cycles).
+ * - Call this once during app startup (e.g. in `app/_layout.tsx`).
+ */
+export const setAxiosAuthHandlers = (handlers: Partial<AxiosAuthHandlers>): void => {
+  authHandlers = { ...defaultAuthHandlers, ...handlers };
+};
 
 /**
  * Shared refresh token promise to prevent multiple simultaneous refresh attempts
@@ -23,10 +55,8 @@ export const grandlineAxiosClient: AxiosInstance = axios.create({
 });
 
 grandlineAxiosClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    // Get auth state from Redux store
-    const state = store.getState();
-    const { accessToken } = state.auth;
+  async (config: InternalAxiosRequestConfig) => {
+    const accessToken = await authHandlers.getAccessToken();
 
     if (accessToken && config.headers) {
       config.headers.Authorization = `Bearer ${accessToken}`;
@@ -102,10 +132,8 @@ grandlineAxiosClient.interceptors.response.use(
         });
       }
 
-      // Check if user is still authenticated before trying to refresh
-      const currentState = store.getState();
-      if (!currentState.auth.isAuthenticated) {
-        // User is already logged out - don't try to refresh, just reject
+      // Optional guard: if app state says user isn't authenticated, don't attempt refresh
+      if (authHandlers.isAuthenticated && !authHandlers.isAuthenticated()) {
         return Promise.reject({
           message: 'Your session has expired. Please login again.',
           code: 'UNAUTHORIZED',
@@ -130,16 +158,22 @@ grandlineAxiosClient.interceptors.response.use(
       // Start a new refresh attempt
       refreshTokenPromise = (async () => {
         try {
-          const result = await store.dispatch(refreshUserToken()).unwrap();
-          if (result) {
-            return {
-              accessToken: result.accessToken,
-              refreshToken: result.refreshToken,
-            };
+          await authHandlers.refreshTokens();
+
+          // After refresh, request interceptor will attach the latest access token.
+          // Return stored tokens only for informational purposes (not used for headers here).
+          const [accessToken, refreshToken] = await Promise.all([
+            authStorage.getAccessToken(),
+            authStorage.getRefreshToken(),
+          ]);
+
+          if (!accessToken || !refreshToken) {
+            throw new Error('Token refresh succeeded but tokens were not found in storage');
           }
-          throw new Error('Token refresh failed');
+
+          return { accessToken, refreshToken };
         } catch (refreshError) {
-          // Refresh failed - clear auth will be handled by the slice
+          authHandlers.onAuthFailure?.('refresh_failed');
           throw refreshError;
         } finally {
           // Clear the refresh promise so new 401s can trigger a new refresh
@@ -154,6 +188,7 @@ grandlineAxiosClient.interceptors.response.use(
         return grandlineAxiosClient(originalRequest);
       } catch {
         // Refresh failed - reject this request
+        authHandlers.onAuthFailure?.('unauthorized');
         return Promise.reject({
           message: 'Your session has expired. Please login again.',
           code: 'UNAUTHORIZED',

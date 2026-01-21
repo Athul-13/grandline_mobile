@@ -16,7 +16,10 @@ import { SocketProvider } from '../src/contexts/socket_context';
 import { useAuthRestoration } from '../src/hooks/auth';
 import { useOfflineQueueSync } from '../src/hooks/network/use_offline_queue_sync';
 import { usePushNotifications } from '../src/hooks/push/use_push_notifications';
+import { setAxiosAuthHandlers } from '../src/services/api/axios_client';
+import { disconnectSocket } from '../src/services/socket/socket_client';
 import { store } from '../src/store';
+import { refreshUserToken } from '../src/store/slices/auth_slice';
 
 function NavigationHandler() {
   const router = useRouter();
@@ -61,6 +64,21 @@ function NavigationHandler() {
 
 function AppContent() {
   const { isRestoring } = useAuthRestoration();
+
+  // Configure axios auth handlers once at app startup.
+  // This breaks the require-cycle by keeping axios_client free of Redux imports.
+  useEffect(() => {
+    setAxiosAuthHandlers({
+      isAuthenticated: () => store.getState().auth.isAuthenticated,
+      refreshTokens: async () => {
+        await store.dispatch(refreshUserToken()).unwrap();
+      },
+      onAuthFailure: () => {
+        // Ensure socket doesn't keep reconnecting with a stale token on auth failure.
+        disconnectSocket();
+      },
+    });
+  }, []);
   
   // Auto-sync offline queue when connection is restored
   useOfflineQueueSync();

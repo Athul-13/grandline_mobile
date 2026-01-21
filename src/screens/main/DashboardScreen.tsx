@@ -1,127 +1,273 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EmptyTripState } from '../../components/trips/empty_trip_state';
+import { TripListItem } from '../../components/trips/trip_list_item';
 import { borderRadius, spacing, typography } from '../../constants/theme';
-import { useLogout } from '../../hooks/auth';
+import { useDriverDashboard } from '../../hooks/driver';
 import { useTheme } from '../../hooks/use-theme';
-import { useAppSelector } from '../../store/hooks';
+import { useLocationTracking } from '../../hooks/location';
+import { useTripSocketEvents } from '../../hooks/socket';
+
+/**
+ * Backend Pagination Contract (Verified):
+ * - Upcoming Trips: Returns ALL trips in a single array (no pagination metadata)
+ *   → Use client-side progressive rendering
+ * - Past Trips: Returns { items, nextCursor, hasMore } with server-side pagination
+ *   → Use React Query's infinite query (already configured)
+ */
+const INITIAL_UPCOMING_LIMIT = 3;
+const UPCOMING_INCREMENT = 3;
 
 export const DashboardScreen: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
-  const logoutMutation = useLogout();
   const insets = useSafeAreaInsets();
+  const dashboardQuery = useDriverDashboard({ pastLimit: 10 });
   
-  // Get driver data from Redux
-  const driver = useAppSelector((state) => state.auth.driver);
+  // Listen for trip socket events (driver/vehicle changes)
+  useTripSocketEvents();
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logoutMutation.mutateAsync();
-              router.replace('/(auth)/login');
-            } catch {
-              // Even if logout fails, navigate to login
-              router.replace('/(auth)/login');
-            }
-          }
-        }
-      ]
-    );
+  // Client-side progressive rendering for Upcoming Trips
+  const [upcomingVisibleCount, setUpcomingVisibleCount] = useState(INITIAL_UPCOMING_LIMIT);
+  
+  // Pull to refresh state
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await dashboardQuery.refetch();
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  // Get driver's name for welcome message
-  const getWelcomeMessage = () => {
-    if (!driver) return 'Welcome to GrandLine!';
-    // Extract first name from fullName
-    const firstName = driver.fullName.split(' ')[0];
-    return `Welcome back, ${firstName}!`;
+  const handleTripPress = (reservationId: string) => {
+    router.push({
+      pathname: '/(main)/(dashboard)/trip-detail',
+      params: { reservationId },
+    });
+  };
+
+  const firstPage = dashboardQuery.data?.pages?.[0];
+  const currentTrip = firstPage?.currentTrip ?? null;
+  const allUpcomingTrips = firstPage?.upcomingTrips ?? [];
+  const pastTrips = dashboardQuery.data?.pages?.flatMap((p) => p.pastTrips.items) ?? [];
+
+  // Location tracking for current trip
+  // Server determines currentTrip by tripState === 'CURRENT' (which is derived from startedAt)
+  // Since startedAt/completedAt are not in the dashboard response, we use tripState
+  const isActiveTrip = currentTrip?.tripState === 'CURRENT';
+  const locationTracking = useLocationTracking({
+    reservationId: currentTrip?.reservationId ?? null,
+    isTripStarted: isActiveTrip, // tripState === 'CURRENT' implies startedAt exists
+    isTripCompleted: false, // tripState === 'CURRENT' implies completedAt is null
+    enabled: isActiveTrip, // Only track if there's a current trip
+  });
+
+  // Client-side progressive rendering: show first N, then increment on "View more"
+  const visibleUpcomingTrips = allUpcomingTrips.slice(0, upcomingVisibleCount);
+  const hasMoreUpcoming = allUpcomingTrips.length > upcomingVisibleCount;
+
+  const handleViewMoreUpcoming = () => {
+    setUpcomingVisibleCount((prev) => prev + UPCOMING_INCREMENT);
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background, paddingBottom: insets.bottom + 100 }]}>
-      <View style={styles.header}>
-        <Image 
-          source={require('../../assets/images/mainpage-logo.png')} 
-          style={styles.logo}
-          resizeMode="contain"
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xl }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={theme.primary}
         />
-        <Text style={[styles.title, { color: theme.text }]}>
-          {getWelcomeMessage()}
-        </Text>
-        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-          {driver ? `Ready to start driving, ${driver.fullName.split(' ')[0]}?` : 'Loading your dashboard...'}
-        </Text>
+      }
+    >
+      <View style={[styles.content, { paddingTop: insets.top + spacing.lg }]}>
+        {/* Loading State */}
+        {dashboardQuery.isLoading && !dashboardQuery.data && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={theme.primary} />
+            <Text style={[styles.loadingText, { color: theme.textSecondary }]}>
+              Loading your trips…
+            </Text>
+          </View>
+        )}
+
+        {/* Error State */}
+        {dashboardQuery.isError && (
+          <View style={styles.errorBox}>
+            <Text style={[styles.errorText, { color: theme.text }]}>
+              Failed to load trips.
+            </Text>
+            <TouchableOpacity
+              style={[styles.secondaryButton, { borderColor: theme.primary }]}
+              onPress={() => dashboardQuery.refetch()}
+            >
+              <Text style={[styles.secondaryButtonText, { color: theme.primary }]}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Content */}
+        {!dashboardQuery.isLoading && !dashboardQuery.isError && (
+          <>
+            {/* Current Trip Section */}
+            <View style={styles.section}>
+              {currentTrip ? (
+                <TripListItem
+                  trip={currentTrip}
+                  isCurrent
+                  onPress={() => handleTripPress(currentTrip.reservationId)}
+                />
+              ) : (
+                <EmptyTripState
+                  title="No active trip"
+                  subtitle="You don't have any trips in progress right now"
+                  icon="time-outline"
+                />
+              )}
+            </View>
+
+            {/* Upcoming Trips Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                Upcoming Trips
+              </Text>
+              {allUpcomingTrips.length > 0 ? (
+                <>
+                  {visibleUpcomingTrips.map((trip) => (
+                    <TripListItem
+                      key={trip.reservationId}
+                      trip={trip}
+                      onPress={() => handleTripPress(trip.reservationId)}
+                    />
+                  ))}
+                  {hasMoreUpcoming && (
+                    <TouchableOpacity
+                      style={[styles.loadMoreButton, { borderColor: theme.primary }]}
+                      onPress={handleViewMoreUpcoming}
+                    >
+                      <Text style={[styles.loadMoreButtonText, { color: theme.primary }]}>
+                        View More Upcoming Trips
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                <EmptyTripState
+                  title="No upcoming trips"
+                  subtitle="You don't have any scheduled trips"
+                  icon="calendar-outline"
+                />
+              )}
+            </View>
+
+            {/* Past Trips Section */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                Past Trips
+              </Text>
+              {pastTrips.length > 0 ? (
+                <>
+                  {pastTrips.map((trip) => (
+                    <TripListItem
+                      key={trip.reservationId}
+                      trip={trip}
+                      onPress={() => handleTripPress(trip.reservationId)}
+                    />
+                  ))}
+                  {/* Server-side pagination: show button when backend indicates more data */}
+                  {dashboardQuery.hasNextPage && (
+                    <TouchableOpacity
+                      style={[styles.loadMoreButton, { borderColor: theme.primary }]}
+                      onPress={() => dashboardQuery.fetchNextPage()}
+                      disabled={dashboardQuery.isFetchingNextPage}
+                    >
+                      {dashboardQuery.isFetchingNextPage ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : (
+                        <Text style={[styles.loadMoreButtonText, { color: theme.primary }]}>
+                          View More Past Trips
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                <EmptyTripState
+                  title="No past trips"
+                  subtitle="Your completed trips will appear here"
+                  icon="checkmark-circle-outline"
+                />
+              )}
+            </View>
+          </>
+        )}
       </View>
-      
-      <View style={styles.content}>
-        <TouchableOpacity 
-          style={[styles.logoutButton, { borderColor: theme.primary }]}
-          onPress={handleLogout}
-        >
-          <Ionicons name="log-out-outline" size={20} color={theme.primary} style={styles.logoutIcon} />
-          <Text style={[styles.logoutButtonText, { color: theme.primary }]}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     paddingHorizontal: spacing.md,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logo: {
-    width: 200,
-    height: 200,
-    marginBottom: spacing.md + 4,
-  },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: typography.sizes.md,
-    textAlign: 'center',
-    opacity: 0.8,
   },
   content: {
     width: '100%',
-    maxWidth: 300,
   },
-  logoutButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    paddingVertical: spacing.md - 1,
-    paddingHorizontal: spacing.lg + 6,
-    borderRadius: borderRadius.md,
+  section: {
+    marginBottom: spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing.md,
+  },
+  loadingContainer: {
     alignItems: 'center',
-    flexDirection: 'row',
     justifyContent: 'center',
+    paddingVertical: spacing.xxl,
   },
-  logoutIcon: {
-    marginRight: spacing.sm,
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: typography.sizes.sm,
   },
-  logoutButtonText: {
+  errorBox: {
+    marginBottom: spacing.md,
+  },
+  errorText: {
+    fontSize: typography.sizes.sm,
+    marginBottom: spacing.sm,
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+  },
+  secondaryButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+  },
+  loadMoreButton: {
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    marginTop: spacing.md,
+  },
+  loadMoreButtonText: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },

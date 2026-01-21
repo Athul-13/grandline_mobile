@@ -10,6 +10,20 @@ export default function DashboardLayout() {
           title: 'Dashboard'
         }}
       />
+      <Stack.Screen
+        name="trip-detail"
+        options={{
+          headerShown: false,
+          title: 'Trip Details'
+        }}
+      />
+      <Stack.Screen
+        name="trip-map"
+        options={{
+          headerShown: false,
+          title: 'Trip Route'
+        }}
+      />
     </Stack>
   );
 }
